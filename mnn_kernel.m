@@ -1,4 +1,9 @@
 function [DiffOp, K] = mnn_kernel(data, sample_ind, npca, k, a, distfun)
+% [DiffOp, K] = mnn_kernel(data, sample_ind, npca, k, a, distfun)
+%
+%   creates a kernel that in combination with MAGIC does batch correction
+%
+%   sample_ind are the sample indices
 
 if ~exist('distfun','var')
     distfun = 'euclidean';
