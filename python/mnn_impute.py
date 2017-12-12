@@ -35,13 +35,13 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     """
 
     if sample_idx is None:
-    sample_idx = np.ones(len(X))
+        sample_idx = np.ones(len(X))
 
     samples = np.unique(sample_idx)
-    
+
     K = np.zeros((len(X), len(X)))
     K[:] = np.nan
-    
+
     # Build KNN kernel
     if verbose: print('Finding KNN...')
     for si in samples:
@@ -54,7 +54,6 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
             pdx_ij = pdx_ij / e_ij           # normalize
             k_ij   = np.exp((-pdx_ij) ** a)  # apply α-decaying kernel
             K[sample_idx == si, :][:, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
-    
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
@@ -91,21 +90,17 @@ def svdpca(X, n_components, method='svd', verbose=False):
         2 dimensional array transformed using specified dimensionality reduction
         method
     """
-
     X = X - X.mean() # mean centering
 
     if method == 'svd':
-        if verbose:
-            print('PCA using SVD')
-        U = svds(X.T, k=n_components)
-        Y = X * U
+        if verbose: print('PCA using SVD')
+        U, S, V = svds(X.T, k=n_components)
+        Y = np.dot(X, U)
     elif method == 'random':
-        if verbose:
-            print('PCA using random SVD')
-        Y = RandomizedPCA(n_components=n_components).fit_transform(X)
+        if verbose: print('PCA using random SVD')
+        Y = PCA(n_components=n_components, svd_solver='randomized').fit_transform(X)
     elif method == None:
-        if verbose:
-            print('No PCA performed')
+        if verbose: print('No PCA performed')
         Y = X;
     else:
         raise NotImplementedError('PCA method %s has not been implemented.'%method)
