@@ -35,13 +35,13 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     """
 
     if sample_idx is None:
-        sample_idx = np.ones(len(X))
+    sample_idx = np.ones(len(X))
 
     samples = np.unique(sample_idx)
-
-    K = np.zeros(len(X))
+    
+    K = np.zeros((len(X), len(X)))
     K[:] = np.nan
-
+    
     # Build KNN kernel
     if verbose: print('Finding KNN...')
     for si in samples:
@@ -53,15 +53,15 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
             e_ij   = kdx_ij[:,k]             # dist to kNN
             pdx_ij = pdx_ij / e_ij           # normalize
             k_ij   = np.exp((-pdx_ij) ** a)  # apply α-decaying kernel
-            K[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
-
+            K[sample_idx == si, :][:, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
+    
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
                 pdx_ji = pdx_ji / e_ji
                 k_ji = np.expt((-pdx_ji) ** a)
-                K[sample_idx == sj, sample_idx == si] = k_ji
+                K[sample_idx == sj, :][:, sample_idx == si] = k_ji
     if verbose: print('Computing Operator...')
     K = K + K.T
     diff_op  = np.dot(np.diag(np.sum(K, axis=1)) ** (-1), K)
