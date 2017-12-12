@@ -68,10 +68,6 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     if verbose: print('Done!')
     return diff_op
 
-
-
-
-
 def svdpca(X, n_components, method='svd', verbose=False):
     """
     Mean-center and applies a number of SVD and PCA functions to data matrix X
