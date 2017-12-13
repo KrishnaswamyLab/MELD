@@ -31,7 +31,7 @@ def svdpca(X, n_components, method='svd', verbose=False):
         2 dimensional array transformed using specified dimensionality reduction
         method
     """
-    X = X - X.mean() # mean centering
+    X = X - np.mean(X) # mean centering
 
     if method == 'svd':
         if verbose: print('PCA using SVD')
