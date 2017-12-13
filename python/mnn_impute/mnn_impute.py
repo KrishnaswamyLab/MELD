@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import cdist, squareform, pdist
 
 def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     """
@@ -66,4 +66,21 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     diff_deg = np.diag(np.sum(K,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),K)
     if verbose: print('Done!')
+    return diff_op
+
+def magic(X, diff_op, t, verbose=False):
+    if verbose: print('powering operator')
+    diff_op_t = np.linalg.matrix_power(diff_op, t)
+    return np.dot(diff_op_t, X)
+
+# computes kernel and operator
+def get_operator(data=None, k=5, a=10):
+    pdx = squareform(pdist(data, metric='euclidean')) # compute distances on pca
+    knn_dst = np.sort(pdx, axis=1) # get knn distances for adaptive kernel
+    epsilon = knn_dst[:,k] # bandwidth(x) = distance to k-th neighbor of x
+    pdx = (pdx / epsilon).T # autotuning d(x,:) using epsilon(x).
+    gs_ker = np.exp(-1 * ( pdx ** a)) # alpha decaying Gaussian kernel: exp(-D^alpha)
+    gs_ker = gs_ker + gs_ker.T # symmetrization
+    diff_deg = np.diag(np.sum(gs_ker,0)) # degrees
+    diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),gs_ker) # row stochastic -> Markov operator
     return diff_op
