@@ -1,6 +1,6 @@
 import numpy as np
+import pandas as pd
 from scipy.spatial.distance import cdist
-
 
 def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     """
@@ -40,6 +40,7 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
 
     K = np.zeros((len(X), len(X)))
     K[:] = np.nan
+    K = pd.DataFrame(K)
 
     # Build KNN kernel
     if verbose: print('Finding KNN...')
@@ -50,19 +51,19 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
             pdx_ij = cdist(X_i, X_j, metric=metric) # pairwise distances
             kdx_ij = np.sort(pdx_ij, axis=1) # get kNN
             e_ij   = kdx_ij[:,k]             # dist to kNN
-            pdx_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
-            k_ij   = np.exp(-1 * (pdx_ij ** a))  # apply α-decaying kernel np.exp(-1 * ( pdx ** a))
-            K[sample_idx == si, :][:, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
+            pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
+            k_ij   = np.exp(-1 * (pdx_ij ** a))  # apply α-decaying kernel
+            K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
-                pdx_ji = pdx_ji / e_ji[:, np.newaxis]
-                k_ji = np.exp(-1 * (pdx_ji ** a))
-                K[sample_idx == sj, :][:, sample_idx == si] = k_ji
+                pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
+                k_ji = np.exp(-1 * (pdxe_ji** a))
+                K.iloc[sample_idx == sj, sample_idx == si] = k_ji
     if verbose: print('Computing Operator...')
     K = K + K.T
     diff_deg = np.diag(np.sum(K,0)) # degrees
-    diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)), K) # row stochastic ->
+    diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),K)
     if verbose: print('Done!')
     return diff_op
