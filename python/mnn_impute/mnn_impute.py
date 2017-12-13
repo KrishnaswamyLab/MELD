@@ -51,14 +51,14 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
             kdx_ij = np.sort(pdx_ij, axis=1) # get kNN
             e_ij   = kdx_ij[:,k]             # dist to kNN
             pdx_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
-            k_ij   = np.exp((-pdx_ij) ** a)  # apply α-decaying kernel
+            k_ij   = np.exp(-1 * (pdx_ij ** a))  # apply α-decaying kernel np.exp(-1 * ( pdx ** a))
             K[sample_idx == si, :][:, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
                 pdx_ji = pdx_ji / e_ji[:, np.newaxis]
-                k_ji = np.exp((-pdx_ji) ** a)
+                k_ji = np.exp(-1 * (pdx_ji ** a))
                 K[sample_idx == sj, :][:, sample_idx == si] = k_ji
     if verbose: print('Computing Operator...')
     K = K + K.T
