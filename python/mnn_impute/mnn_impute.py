@@ -62,6 +62,7 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
                 K[sample_idx == sj, :][:, sample_idx == si] = k_ji
     if verbose: print('Computing Operator...')
     K = K + K.T
-    diff_op  = np.dot(np.diag(np.sum(K, axis=1)) ** (-1), K)
+    diff_deg = np.diag(np.sum(K,0)) # degrees
+    diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)), K) # row stochastic ->
     if verbose: print('Done!')
     return diff_op
