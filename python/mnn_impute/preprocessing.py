@@ -5,6 +5,8 @@ import sklearn.preprocessing
 import sklearn.decomposition
 import numpy as np
 import scipy.sparse as sp
+from scipy.sparse.linalg import svds
+from sklearn.decomposition import RandomizedPCA
 
 def svdpca(X, n_components, method='svd', verbose=False):
     """
