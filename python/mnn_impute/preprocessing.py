@@ -121,3 +121,28 @@ def library_size_normalize(data, verbose=False):
     median_transcript_count = np.median(data.sum(axis=1))
     data_norm = data_norm * median_transcript_count
     return data_norm
+
+def center_batches(data, sample_idx=None, verbose=False):
+    """Center the data by batch
+    Assumes input has n rows by m features
+    The n rows are split into k batches, indexed by sample_idx
+    We force the mean of each feature to be 0 across each batch
+
+    Parameters
+    ----------
+    data : ndarray [n,p]
+        2 dimensional input data array with n cells and p dimensions
+
+    Returns
+    -------
+    data_norm : ndarray [n, p]
+        2 dimensional array with normalized gene expression values
+    """
+    if sample_idx is None: 
+        if verbose: print("sample_idx not given, centering data as a single batch")
+        sample_idx = np.repeat([0], data.shape[0])
+    if verbose: print("Centering data by batch for %s cells and %s batches"%(data.shape[0], len(np.unique(sample_idx))))
+    data_norm = np.zeros(shape=data.shape)
+    for sample in np.unique(sample_idx):
+        data_norm[sample_idx == sample] = sklearn.preprocessing.scale(data[sample_idx == sample], axis=0, with_mean=True, with_std=False)
+    return data_norm
