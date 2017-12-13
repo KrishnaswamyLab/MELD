@@ -52,7 +52,7 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
             kdx_ij = np.sort(pdx_ij, axis=1) # get kNN
             e_ij   = kdx_ij[:,k]             # dist to kNN
             pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
-            k_ij   = np.exp(-1 * (pdx_ij ** a))  # apply α-decaying kernel
+            k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
             K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
