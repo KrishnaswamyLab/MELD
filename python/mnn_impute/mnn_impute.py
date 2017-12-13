@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.sparse.linalg import svds
 from scipy.spatial.distance import cdist
-from sklearn.decomposition import RandomizedPCA
+
 
 def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     """
