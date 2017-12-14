@@ -1,0 +1,85 @@
+%% Load bunny
+G = gsp_bunny();
+sig = sin(1:G.N);
+
+%% Construct external measurements
+% Heat Filter
+ext_meas_heat = make_ext_meas(G);
+ext_meas_heat_noised = awgn(ext_meas_heat,25);
+figure;title('Heat Filter');
+subplot(1,2,1);
+gsp_plot_signal(G, ext_meas_heat_noised);
+
+% Abspline Filter
+ext_meas_abspline = make_ext_meas(G, 'filter', 'abspline');
+ext_meas_abspline_noised = awgn(ext_meas,20);
+figure;title('Abspline Filter');
+gsp_plot_signal(G, ext_meas_abspline_noised);
+
+%% Run phate and get kernel
+data = G.coords;
+t = 20;
+[Y, diffOp, DiffOp_t] = phate(data, 'npca', 3, 'mds_method', 'cmds', 't', t);
+imputed_meas = DiffOp_t * ext_meas_noised;
+gsp_plot_signal(G, imputed_meas);
+
+%% Construct graph and do gft
+G_ft = gsp_compute_fourier_basis(G); % Clear G_0 if data gets big
+%G.coords = Y;
+ft = gsp_gft(G_ft, sig);
+figure;
+subplot(1,2,1);gsp_plot_signal(G_ft,sig);
+subplot(1,2,2);gsp_plot_signal_spectral(G_ft, ft);
+ft(1:1200) = 0;
+f = gsp_igft(G_ft, ft);
+figure;gsp_plot_signal(G, f);
+
+%% Now Try Magic 
+t = 500;
+data_features = G.coords;
+data_imputed = run_magic([data_features, f'], t, 'npca', 4, 'k', 10, 'lib_size_norm', false);
+[Y, diffOp, DiffOp_t] = phate(data_features, 'npca', 3, 'mds_method', 'cmds', 'ndim', 3);
+figure;scatter3(Y(:, 1), Y(:, 2), Y(:, 3), 20, data_imputed(:,4), 'filled');
+
+
+%% Plot Magic
+marker_size = 20;
+subplot(1,2,1);
+scatter3(data_features(:,1), data_features(:,2), data_features(:,3), marker_size, data_imputed(:,4), 'filled');
+subplot(1,2,2);
+scatter3(data_imputed(:, 1), data_imputed(:,2), data_imputed(:, 3), marker_size, data_imputed(:,4), 'filled');
+
+
+
+%% Smooth by gsp_design_heat i.e. similar to Magic
+tau = 100;
+G_smoothed = gsp_design_heat(G, tau);
+wave_coefs = gsp_filter_analysis(G, G_smoothed, sig);
+
+figure;
+gsp_plot_signal(G, wave_coefs);
+
+
+
+
+delta = zeros(1,G.N);
+delta(:,800) = 15;
+%tau = 100;
+%heat = gsp_design_heat(G,tau);
+Nf = 4;
+heat = gsp_design_abspline(G, Nf);
+figure;gsp_plot_filter(G,heat);
+delta_heat = gsp_filter_analysis(G, heat{2,1}, delta');
+
+delta2 = zeros(1,G.N);
+delta2(:,2500) = 15;
+%tau = 100;
+%heat2 = gsp_design_heat(G,tau);
+Nf = 4;
+heat2 = gsp_design_abspline(G, Nf);
+%figure;gsp_plot_filter(G,heat2);
+delta_heat2 = gsp_filter_analysis(G, heat2{2,1}, delta2');
+
+ext_meas = delta_heat + delta_heat2;
+%gsp_plot_signal(G, ext_meas);
+

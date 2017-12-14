@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # Original Author: Matt Amodio
 
+import numpy as np
+
 def make_batches(n_pts_per_cluster=5000):
     data = []
     labels = []
@@ -18,7 +20,7 @@ def make_batches(n_pts_per_cluster=5000):
     # batch 2
     d = [make(1,-1,.1), make(2,0,.1), make(-2,-1,.1)]
     l = np.ones(len(d)*n_pts_per_cluster)
-    d = np.concatenate([d], axis=0)
+    d = np.concatenate(d, axis=0)
 
     data.append(d)
     labels.append(l)
