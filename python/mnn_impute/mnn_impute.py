@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.spatial.distance import cdist
-
+import pandas as pd
+from scipy.spatial.distance import cdist, squareform, pdist
 
 def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     """
@@ -40,6 +40,7 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
 
     K = np.zeros((len(X), len(X)))
     K[:] = np.nan
+    K = pd.DataFrame(K)
 
     # Build KNN kernel
     if verbose: print('Finding KNN...')
@@ -50,18 +51,36 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
             pdx_ij = cdist(X_i, X_j, metric=metric) # pairwise distances
             kdx_ij = np.sort(pdx_ij, axis=1) # get kNN
             e_ij   = kdx_ij[:,k]             # dist to kNN
-            pdx_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
-            k_ij   = np.exp(-1 * (pdx_ij ** a))  # apply α-decaying kernel np.exp(-1 * ( pdx ** a))
-            K[sample_idx == si, :][:, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
+            pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
+            k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
+            K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
-                pdx_ji = pdx_ji / e_ji[:, np.newaxis]
-                k_ji = np.exp(-1 * (pdx_ji ** a))
-                K[sample_idx == sj, :][:, sample_idx == si] = k_ji
+                pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
+                k_ji = np.exp(-1 * (pdxe_ji** a))
+                K.iloc[sample_idx == sj, sample_idx == si] = k_ji
     if verbose: print('Computing Operator...')
     K = K + K.T
-    diff_op  = np.dot(np.diag(np.sum(K, axis=1)) ** (-1), K)
+    diff_deg = np.diag(np.sum(K,0)) # degrees
+    diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),K)
     if verbose: print('Done!')
+    return diff_op
+
+def magic(X, diff_op, t, verbose=False):
+    if verbose: print('powering operator')
+    diff_op_t = np.linalg.matrix_power(diff_op, t)
+    return np.dot(diff_op_t, X)
+
+# computes kernel and operator
+def get_operator(data=None, k=5, a=10):
+    pdx = squareform(pdist(data, metric='euclidean')) # compute distances on pca
+    knn_dst = np.sort(pdx, axis=1) # get knn distances for adaptive kernel
+    epsilon = knn_dst[:,k] # bandwidth(x) = distance to k-th neighbor of x
+    pdx = (pdx / epsilon).T # autotuning d(x,:) using epsilon(x).
+    gs_ker = np.exp(-1 * ( pdx ** a)) # alpha decaying Gaussian kernel: exp(-D^alpha)
+    gs_ker = gs_ker + gs_ker.T # symmetrization
+    diff_deg = np.diag(np.sum(gs_ker,0)) # degrees
+    diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),gs_ker) # row stochastic -> Markov operator
     return diff_op
