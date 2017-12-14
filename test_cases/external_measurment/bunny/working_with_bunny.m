@@ -1,47 +1,44 @@
 %% Load bunny
 G = gsp_bunny();
 sig = sin(1:G.N);
-gsp_plot_signal(G, 1:G.N);
 
 %% Construct external measurements
-
-
-%% Run phate and get kernel
-[axy, gxy] = alphakernel(data);
-
-%% Construct graph and do gft
-G_ft = gsp_compute_fourier_basis(G); % Clear G_0 if data gets big
-%G.coords = Y;
-ft = gsp_gft(G_ft, sig);
-figure;
-subplot(1,2,1);gsp_plot_signal(G_ft,sig);
-subplot(1,2,2);gsp_plot_signal_spectral(G_ft, ft);
-ft(1:1200) = 0;
-f = gsp_igft(G_ft, ft);
-figure;gsp_plot_signal(G, f);
-
-%% Now Try Magic 
-t = 500;
-data_features = G.coords;
-data_imputed = run_magic([data_features, f'], t, 'npca', 4, 'k', 10, 'lib_size_norm', false);
-[Y, diffOp, DiffOp_t] = phate(data_features, 'npca', 3, 'mds_method', 'cmds', 'ndim', 3);
-figure;scatter3(Y(:, 1), Y(:, 2), Y(:, 3), 20, data_imputed(:,4), 'filled');
-
-
-%% Plot Magic
-marker_size = 20;
+% Heat Filter
+ext_meas_heat = make_ext_meas(G);
+ext_meas_heat_noised = awgn(ext_meas_heat,25);
+figure;suptitle('Heat Filter Measurements with and without noise');
 subplot(1,2,1);
-scatter3(data_features(:,1), data_features(:,2), data_features(:,3), marker_size, data_imputed(:,4), 'filled');
+gsp_plot_signal(G, ext_meas_heat);
 subplot(1,2,2);
-scatter3(data_imputed(:, 1), data_imputed(:,2), data_imputed(:, 3), marker_size, data_imputed(:,4), 'filled');
-subplot(1,);
+gsp_plot_signal(G, ext_meas_heat_noised);
 
+% Abspline Filter
+ext_meas_abspline = make_ext_meas(G, 'filter', 'abspline');
+ext_meas_abspline_noised = awgn(ext_meas,20);
+figure;suptitle('AB spline wavelet Filter Measurements with and without noise');
+subplot(1,2,1);
+gsp_plot_signal(G, ext_meas_abspline);
+subplot(1,2,2);
+gsp_plot_signal(G, ext_meas_abspline_noised);
 
-%% Smooth by gsp_design_heat i.e. similar to Magic
-tau = 100;
-G_smoothed = gsp_design_heat(G, tau);
-wave_coefs = gsp_filter_analysis(G, G_smoothed, sig);
+%% Run phate to get diffusion operator
+data = G.coords;
+t = 20;
+[~, ~, diffOp_t] = phate(data, 'npca', 3, 'mds_method', 'cmds', 't', t);
 
-figure;
-gsp_plot_signal(G, wave_coefs);
+%% Plot Imputed measurement on the Bunny
+% Heat
+imputed_meas_heat = diffOp_t * ext_meas_heat_noised;
+figure;suptitle('pre-Imputed and post-Imputed for Heat measurements');
+subplot(1,2,1);
+gsp_plot_signal(G, ext_meas_heat_noised);
+subplot(1,2,2);
+gsp_plot_signal(G, imputed_meas_heat);
 
+% Wavelet AB spline 
+imputed_meas_abspline = diffOp_t * ext_meas_abspline_noised;
+figure;suptitle('pre-Imputed and post-Imputed for AB spline measurements');
+subplot(1,2,1);
+gsp_plot_signal(G, ext_meas_abspline_noised);
+subplot(1,2,2);
+gsp_plot_signal(G, imputed_meas_abspline);
