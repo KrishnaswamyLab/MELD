@@ -84,3 +84,15 @@ def get_operator(data=None, k=5, a=10):
     diff_deg = np.diag(np.sum(gs_ker,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),gs_ker) # row stochastic -> Markov operator
     return diff_op
+
+def normalize_imputed_vector(v, sample_idx):
+    """
+    v is an imputed discrete vector and sample_idx identifies
+    which values of v belong to condition 0 (neg) or 1 (pos)
+    """
+    v_norm = (v - np.min(v)) / np.max(v - np.min(v))    # rescale v to [0,1]
+    v_norm = v_norm / np.sum(sample_idx == 0)       # adjust by number of cells in sample 0
+    v_norm_inv = (1 - v_norm) / np.sum(sample_idx == 1) # adjust by number of cells in sample 1
+    v_norm_sum = v_norm_inv + v_norm
+    v_norm = v_norm / v_norm_sum
+    return v_norm
