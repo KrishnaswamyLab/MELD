@@ -1,12 +1,14 @@
 function prcts = batch_quantify(x, labels, k,npca, distfun)
     %batch_quantify: measure nearest neighbor confusion matrix in data x.
     % compares true labels to neighbor distribution, averaged over all
-    % samples in label
+    % samples in label. OUTPUT IS asymmetric because we are looking from
+    % j to all neighbors k, which is not symmetric.  Row-wise
+    % interpretation is best. 
 %   [Y, K, L] = hpf0(x,labels, k, npca, distfun)
 %      Inputs:
 %           x: input data to be measured
-%           labels: integer labels starting at 0, incrementing by 1. eg 
-%                   [0 1 2 3] NOT [0 2 3 6]
+%           labels: integer labels starting at 1, incrementing by 1. eg 
+%                   [1 1 2 3 3 4 1 5 ] NOT [0 2 2 3 6] <- no 1, 4 or 5 labels
 %           k: nearest neighbor parameter for #neighbors to survey
 %           npca: number of principal components to compute distances over
 %           distfun: distance function pass to pdist
@@ -14,21 +16,37 @@ function prcts = batch_quantify(x, labels, k,npca, distfun)
 
     % parse parameters
     M = svdpca(x, npca, 'random');
-
+    if min(labels) == 0
+        labels = labels +1;
+    end
     rnge = unique(labels); % range of labels
-    
     dists = squareform(pdist(M,distfun)); %compute distances
     sz = size(dists, 1);
     [~,ix] = sort(dists);
-    nnlabels = labels(ix(2:k+1,:)); %find k-nearest neighbors
+    nnlabels = labels(ix(1:k+1,:)); %find k-nearest neighbors
+    curLs = nnlabels(1,:);
+    nnlabels = sort(nnlabels(2:end,:));
+    prcts = zeros(max(labels),max(labels));
+    nClass = zeros(max(labels),1);
+
+    for i=1:sz
+        curL = curLs(i);
+        [C,ia] = unique(nnlabels(:,i));
+        prctvec = zeros(max(labels), 1)';
+        for j = 1:numel(ia)
+            if j == numel(ia)
+                slice = nnlabels(ia(j):end,i);
+            else
+                slice = nnlabels(ia(j):ia(j+1)-1,i);
+                
+        end
+            prctvec(C(j)) = size(slice,1);
+        end
+        prctvec = prctvec/k;
+
+        prcts(curL,:) = prcts(curL,:) + prctvec;
+        nClass(curL) = nClass(curL) + 1;
+    end     
     
-    comp = bsxfun(@eq, nnlabels(:),rnge); %compare knn labels to labels for logical 
-    comp = reshape(comp, sz, k, size(rnge,2)); % reshape to 3D, each dim is a label
-    
-    comp2 = (sum(comp,2) ./ k); %percent of labels in each point
-    comp2 = squeeze(comp2); %house keeping
-    
-    trueval = labels(ix(1,:)); %pt label
-    trueval = bsxfun(@eq, trueval(:), rnge); % match to range - may not be necessary?
-    prcts = (comp2' * trueval)./sum(trueval); %"Confusion Matrix"
+    prcts = prcts ./ nClass;
 end
