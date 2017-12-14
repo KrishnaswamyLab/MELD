@@ -1,7 +1,9 @@
 function prcts = batch_quantify(x, labels, k,npca, distfun)
     %batch_quantify: measure nearest neighbor confusion matrix in data x.
     % compares true labels to neighbor distribution, averaged over all
-    % samples in label
+    % samples in label. OUTPUT IS asymmetric because we are looking from
+    % j to all neighbors k, which is not symmetric.  Row-wise
+    % interpretation is best. 
 %   [Y, K, L] = hpf0(x,labels, k, npca, distfun)
 %      Inputs:
 %           x: input data to be measured
