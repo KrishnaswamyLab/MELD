@@ -68,7 +68,7 @@ print('-dtiff',[out_base 'PCA_3D_samples.tiff']);
 %% MNN kernel
 k = 3;
 a = 15;
-DiffOp = mnn_kernel_beta(pc, [], [], k, a, 'euclidean', 1);
+DiffOp = mnn_kernel_beta(pc, sdata.samples, [], k, a, 'euclidean', 1/2);
 
 %% MAGIC
 tic;

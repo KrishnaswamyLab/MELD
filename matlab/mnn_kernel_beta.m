@@ -45,14 +45,14 @@ for I=1:n_samp
         epsilonIJ = knnDSTIJ(:,k_mat(I,J));       % distance to KNN
         PDXIJ = bsxfun(@rdivide,PDXIJ,epsilonIJ); % normalize PDXIJ
         KIJ = exp(-PDXIJ.^a);            % apply alpha-decaying kernel
-        K(idx_I, idx_J) = KIJ;           % fill out values in K for NN from I -> J
+        K(idx_I, idx_J) = KIJ * ((1-beta)/(n_samp-1));  % fill out values in K for NN from I -> J
         if I~=J
             PDXJI = PDXIJ';         % Repeat to find KNN from J -> I
             knnDSTJI = sort(PDXJI,2);
             epsilonJI = knnDSTJI(:,k_mat(I,J));
             PDXJI = bsxfun(@rdivide,PDXJI,epsilonJI);
             KJI = exp(-PDXJI.^a);
-            K(idx_J, idx_I) = KJI;
+            K(idx_J, idx_I) = KJI * ((1-beta)/(n_samp-1));
         end
         if I==J
             K(idx_I, idx_J) = K(idx_I, idx_J) * beta;
