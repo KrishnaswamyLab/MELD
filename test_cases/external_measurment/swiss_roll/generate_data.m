@@ -1,4 +1,4 @@
-function [X, labels, t] = generate_data(dataname, n, noise)
+function [X, labels, t] = generate_data(dataname, n, noise, a, b)
 %GENERATE_DATA Generates an artificial dataset (manifold)
 %
 %	[X, labels, t] = generate_data(dataname, n, noise)
@@ -36,7 +36,8 @@ function [X, labels, t] = generate_data(dataname, n, noise)
             height = 30 * rand(n, 1);
             X = [t .* cos(t) height t .* sin(t)] + noise * randn(n, 3);
             %labels = uint8(t);
-            labels = rem(sum([round(t / 2) round(height / 12)], 2), 2);
+            %labels = rem(sum([round(t / a) round(height / b)], 2), 2);
+            labels = 25*sin(t./a + height ./ b);
             t = [t height];
             
         case 'brokenswiss'
