@@ -68,10 +68,16 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     if verbose: print('Done!')
     return diff_op
 
-def magic(X, diff_op, t, verbose=False):
-    if verbose: print('powering operator')
-    diff_op_t = np.linalg.matrix_power(diff_op, t)
-    return np.dot(diff_op_t, X)
+def magic(X, diff_op, t='auto', verbose=False):
+
+    if np.isint(t):
+        if verbose: print('powering operator')
+        diff_op_t = np.linalg.matrix_power(diff_op, t)
+        return np.dot(diff_op_t, X)
+    elif t == 'auto':
+        data_imputed = X
+        
+
 
 # computes kernel and operator
 def get_operator(data=None, k=5, a=10):
