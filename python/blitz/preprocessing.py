@@ -138,7 +138,7 @@ def center_batches(data, sample_idx=None, verbose=False):
     data_norm : ndarray [n, p]
         2 dimensional array with normalized gene expression values
     """
-    if sample_idx is None: 
+    if sample_idx is None:
         if verbose: print("sample_idx not given, centering data as a single batch")
         sample_idx = np.repeat([0], data.shape[0])
     if verbose: print("Centering data by batch for %s cells and %s batches"%(data.shape[0], len(np.unique(sample_idx))))

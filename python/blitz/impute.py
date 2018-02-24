@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist, squareform, pdist
 
-def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
+def mnn_kernel(X, k, a, beta, sample_idx=None, metric='euclidean', verbose=False):
     """
     Creates a kernel linking the k mutual nearest neighbors (MNN) across datasets
     and performs diffusion on this kernel using MAGIC to apply batch correction.
@@ -53,7 +53,10 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
             e_ij   = kdx_ij[:,k]             # dist to kNN
             pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
             k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
-            K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
+            if si == sj:
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN from I -> J
+            else:
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
@@ -69,14 +72,14 @@ def mnn_kernel(X, k, a, sample_idx=None, metric='euclidean', verbose=False):
     return diff_op
 
 def magic(X, diff_op, t='auto', verbose=False):
-
-    if np.isint(t):
+    if isinstance(t, int):
         if verbose: print('powering operator')
         diff_op_t = np.linalg.matrix_power(diff_op, t)
         return np.dot(diff_op_t, X)
+
     elif t == 'auto':
         data_imputed = X
-        
+
 
 
 # computes kernel and operator
