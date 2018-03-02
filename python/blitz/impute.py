@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist, squareform, pdist
+from sklearn.metrics import mutual_info_score
+
 
 def mnn_kernel(X, k, a, beta, sample_idx=None, metric='euclidean', verbose=False):
     """
@@ -17,6 +19,10 @@ def mnn_kernel(X, k, a, beta, sample_idx=None, metric='euclidean', verbose=False
 
     a : int
         Specifies alpha for the α-decaying kernel
+
+    beta: float (0:1]
+        This parameter weights the MNN kernel. Values closer to 1 increase batch
+        correction.
 
     sample_idx : ndarray [n], optional, default: None
         1 dimensional array specifying the sample to which each observation in
@@ -54,16 +60,16 @@ def mnn_kernel(X, k, a, beta, sample_idx=None, metric='euclidean', verbose=False
             pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
             k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
             if si == sj:
-                K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN from I -> J
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij * (1 - beta) # fill out values in K for NN from I -> J
             else:
-                K.iloc[sample_idx == si, sample_idx == sj] = k_ij
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
                 pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
                 k_ji = np.exp(-1 * (pdxe_ji** a))
-                K.iloc[sample_idx == sj, sample_idx == si] = k_ji
+                K.iloc[sample_idx == sj, sample_idx == si] = k_ji * beta
     if verbose: print('Computing Operator...')
     K = K + K.T
     diff_deg = np.diag(np.sum(K,0)) # degrees
@@ -105,3 +111,27 @@ def normalize_imputed_vector(v, sample_idx):
     v_norm_sum = v_norm_inv + v_norm
     v_norm = v_norm / v_norm_sum
     return v_norm
+
+def calc_MI(x, y, bins=8):
+    """
+    Calculates mutual information between X and Y.
+
+    Parameters
+    ----------
+    X : array [p]
+        Values for X
+
+    Y : array [p]
+        Values for Y
+
+    bins : int
+        Number of histogram bins for calculating mutual information.
+
+    Returns
+    -------
+    mi : array [p]
+        Array with mutual information scores
+    """
+    c_xy = np.histogram2d(x, y, bins)[0]
+    mi = mutual_info_score(None, None, contingency=c_xy)
+    return mi
