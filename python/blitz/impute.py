@@ -38,11 +38,11 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
     diff_op : ndarray [n, n]
         2 dimensional array diffusion operator created using a MNN kernel
     """
-    if not (0 < beta <= 1):
-        raise ValueError('Beta must be in the half-open interval (0:1]')
-
-
-    if sample_idx is None:
+    one_sample = (sample_idx == None) or (np.sum(sample_idx) == len(sample_idx))
+    if not one_sample:
+        if not (0 < beta <= 1):
+            raise ValueError('Beta must be in the half-open interval (0:1]')
+    else:
         sample_idx = np.ones(len(X))
 
     samples = np.unique(sample_idx)
@@ -62,17 +62,23 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
             e_ij   = kdx_ij[:,k]             # dist to kNN
             pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
             k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
-            if si == sj:
-                K.iloc[sample_idx == si, sample_idx == sj] = k_ij * (1 - beta) # fill out values in K for NN from I -> J
+            if not one_sample:
+                if si == sj:
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * (1 - beta) # fill out values in K for NN from I -> J
+                else:
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta
             else:
-                K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
             if si != sj:
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
                 pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
                 k_ji = np.exp(-1 * (pdxe_ji** a))
-                K.iloc[sample_idx == sj, sample_idx == si] = k_ji * beta
+                if not one_sample:
+                    K.iloc[sample_idx == sj, sample_idx == si] = k_ji * beta
+                else:
+                    K.iloc[sample_idx == sj, sample_idx == si] = k_ji
     if verbose: print('Computing Operator...')
     K = K + K.T
     diff_deg = np.diag(np.sum(K,0)) # degrees
