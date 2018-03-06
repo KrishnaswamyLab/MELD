@@ -38,7 +38,7 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
     diff_op : ndarray [n, n]
         2 dimensional array diffusion operator created using a MNN kernel
     """
-    one_sample = (sample_idx == None) or (np.sum(sample_idx) == len(sample_idx))
+    one_sample = (sample_idx is None) or (np.sum(sample_idx) == len(sample_idx))
     if not one_sample:
         if not (0 < beta <= 1):
             raise ValueError('Beta must be in the half-open interval (0:1]')
