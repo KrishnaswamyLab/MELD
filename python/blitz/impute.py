@@ -62,23 +62,21 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
             e_ij   = kdx_ij[:,k]             # dist to kNN
             pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
             k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
-            if not one_sample:
-                if si == sj:
-                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN from I -> J
+            if si == sj:
+                if one_sample:
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
                 else:
-                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN on diagnoal
             else:
                 K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
-            if si != sj:
+                # now go back and do J -> I
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
                 pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
                 k_ji = np.exp(-1 * (pdxe_ji** a))
-                if not one_sample:
-                    K.iloc[sample_idx == sj, sample_idx == si] = k_ji * beta
-                else:
-                    K.iloc[sample_idx == sj, sample_idx == si] = k_ji
+                K.iloc[sample_idx == sj, sample_idx == si] = k_ji
+
     if verbose: print('Computing Operator...')
     K = np.multiply(K, K.T)
     diff_deg = np.diag(np.sum(K,0)) # degrees
