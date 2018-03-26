@@ -21,7 +21,7 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
         Specifies alpha for the α-decaying kernel
 
     beta: float (0:1]
-        This parameter weights the MNN kernel. Values closer to 1 increase batch
+        This parameter weights the MNN kernel. Values closer to 0 increase batch
         correction.
 
     sample_idx : ndarray [n], optional, default: None
@@ -64,9 +64,9 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
             k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
             if not one_sample:
                 if si == sj:
-                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * (1 - beta) # fill out values in K for NN from I -> J
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN from I -> J
                 else:
-                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij
             else:
                 K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
             if si != sj:
@@ -80,7 +80,7 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
                 else:
                     K.iloc[sample_idx == sj, sample_idx == si] = k_ji
     if verbose: print('Computing Operator...')
-    K = K + K.T
+    K = np.multiply(K, K.T)
     diff_deg = np.diag(np.sum(K,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),K)
     if verbose: print('Done!')
