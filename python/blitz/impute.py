@@ -21,7 +21,7 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
         Specifies alpha for the α-decaying kernel
 
     beta: float (0:1]
-        This parameter weights the MNN kernel. Values closer to 0 increase batch
+        This parameter weights the MNN kernel. Values closer to 1 increase batch
         correction.
 
     sample_idx : ndarray [n], optional, default: None
