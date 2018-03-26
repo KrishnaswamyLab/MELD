@@ -30,7 +30,7 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, kernel_symm='+', metric='euclid
 
     kernel_symm : string, optional, default: '+'
         Defines method of MNN symmetrization.
-        '+'  : additive 
+        '+'  : additive
         '*'  : multiplicative
         '.*' : inner product
 
@@ -69,22 +69,19 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, kernel_symm='+', metric='euclid
             pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
             k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
             if si == sj:
-                K.iloc[sample_idx == si, sample_idx == sj] = k_ij
-            else:
                 if one_sample:
                     K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
                 else:
-                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN on diagnoal
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * (1 - beta) # fill out values in K for NN on diagnoal
+            else:
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
                 # now go back and do J -> I
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
                 pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
                 k_ji = np.exp(-1 * (pdxe_ji** a))
-                if one_sample:
-                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
-                else:
-                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN on diagnoal
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
 
     if verbose: print('Computing Operator...')
     if kernel_symm=='+':
