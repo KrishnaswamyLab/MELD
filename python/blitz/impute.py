@@ -4,7 +4,7 @@ from scipy.spatial.distance import cdist, squareform, pdist
 from sklearn.metrics import mutual_info_score
 
 
-def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=False):
+def mnn_kernel(X, k, a, beta=1, sample_idx=None, kernel_symm='+', metric='euclidean', verbose=False):
     """
     Creates a kernel linking the k mutual nearest neighbors (MNN) across datasets
     and performs diffusion on this kernel using MAGIC to apply batch correction.
@@ -27,6 +27,12 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
     sample_idx : ndarray [n], optional, default: None
         1 dimensional array specifying the sample to which each observation in
         X belongs. If left empty, X is assumed to be one sample
+
+    kernel_symm : string, optional, default: '+'
+        Defines method of MNN symmetrization.
+        '+'  : additive 
+        '*'  : multiplicative
+        '.*' : inner product
 
     metric : string, optional, default: 'euclidean'
         reccomended values: 'eucliean' and 'cosine'
@@ -63,21 +69,32 @@ def mnn_kernel(X, k, a, beta=1, sample_idx=None, metric='euclidean', verbose=Fal
             pdxe_ij = pdx_ij / e_ij[:, np.newaxis] # normalize
             k_ij   = np.exp(-1 * (pdxe_ij ** a))  # apply α-decaying kernel
             if si == sj:
+                K.iloc[sample_idx == si, sample_idx == sj] = k_ij
+            else:
                 if one_sample:
                     K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
                 else:
                     K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN on diagnoal
-            else:
-                K.iloc[sample_idx == si, sample_idx == sj] = k_ij # fill out values in K for NN from I -> J
                 # now go back and do J -> I
                 pdx_ji = pdx_ij.T # Repeat to find KNN from J -> I
                 kdx_ji = np.sort(pdx_ji, axis=1)
                 e_ji   = kdx_ji[:,k]
                 pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
                 k_ji = np.exp(-1 * (pdxe_ji** a))
-                K.iloc[sample_idx == sj, sample_idx == si] = k_ji
+                if one_sample:
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
+                else:
+                    K.iloc[sample_idx == si, sample_idx == sj] = k_ij * beta # fill out values in K for NN on diagnoal
 
     if verbose: print('Computing Operator...')
+    if kernel_symm=='+':
+        K = K + K.T
+    elif kernel_symm=='*':
+        K = K @ K.T
+    elif kernel_symm=='.*':
+        K = K * K.T
+
+
     K = np.multiply(K, K.T)
     diff_deg = np.diag(np.sum(K,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),K)
