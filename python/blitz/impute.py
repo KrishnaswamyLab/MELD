@@ -4,7 +4,7 @@ from scipy.spatial.distance import cdist, squareform, pdist
 from sklearn.metrics import mutual_info_score
 
 
-def mnn_kernel(X, k, a, beta=1, sample_idx=None, kernel_symm='+', metric='euclidean', verbose=False):
+def mnn_kernel(X, k, a, beta=0, sample_idx=None, kernel_symm='+', metric='euclidean', verbose=False):
     """
     Creates a kernel linking the k mutual nearest neighbors (MNN) across datasets
     and performs diffusion on this kernel using MAGIC to apply batch correction.
