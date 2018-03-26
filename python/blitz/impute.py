@@ -91,8 +91,6 @@ def mnn_kernel(X, k, a, beta=0, sample_idx=None, kernel_symm='+', metric='euclid
     elif kernel_symm=='.*':
         K = K * K.T
 
-
-    K = np.multiply(K, K.T)
     diff_deg = np.diag(np.sum(K,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),K)
     if verbose: print('Done!')
