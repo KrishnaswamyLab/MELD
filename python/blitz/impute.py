@@ -95,8 +95,6 @@ def magic(X, diff_op, t='auto', verbose=False):
     elif t == 'auto':
         data_imputed = X
 
-
-
 # computes kernel and operator
 def get_operator(data=None, k=5, a=10):
     pdx = squareform(pdist(data, metric='euclidean')) # compute distances on pca
@@ -108,6 +106,36 @@ def get_operator(data=None, k=5, a=10):
     diff_deg = np.diag(np.sum(gs_ker,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),gs_ker) # row stochastic -> Markov operator
     return diff_op
+
+def compute_operator_sparse(data, k=10, distance_metric='euclidean'):
+
+    N = data.shape[0]
+
+    # Nearest neighbors
+    print('Computing distances')
+    nbrs = NearestNeighbors(n_neighbors=k, metric=distance_metric).fit(data)
+    distances, indices = nbrs.kneighbors(data)
+
+    # Adjacency matrix
+    print('Computing kernel')
+    rows = np.zeros(N * k, dtype=np.int32)
+    cols = np.zeros(N * k, dtype=np.int32)
+    location = 0
+    for i in range(N):
+        inds = range(location, location + k)
+        rows[inds] = indices[i, :]
+        cols[inds] = i
+        location += k
+
+    W = csr_matrix( (np.ones(cols.shape), (rows, cols)), shape=[N, N] )
+
+    # Symmetrize W
+    W = W + W.T
+
+    #markov normalization
+    T = W / W.sum(axis=1)[:, None]
+
+    return T
 
 def normalize_imputed_vector(v, sample_idx):
     """
