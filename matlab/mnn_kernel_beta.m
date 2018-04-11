@@ -1,4 +1,4 @@
-function [DiffOp, K] = mnn_kernel_beta(data, sample_ind, npca, k, a, distfun, beta)
+function [DiffOp, K] = mnn_kernel_beta(data, sample_ind, npca, k, a, distfun_II, distfun_IJ, beta, kernel_symm)
 % [DiffOp, K] = mnn_kernel(data, sample_ind, npca, k, a, distfun, beta)
 %
 %   creates a kernel that in combination with MAGIC does batch correction
@@ -40,30 +40,49 @@ for I=1:n_samp
         samp_J = uniq_samp(J);
         idx_J = sample_ind == samp_J;
         MJ = M(idx_J,:);                 % slice reduce data matrix for in sample_J points
-        PDXIJ = pdist2(MI, MJ, distfun); % distance from each point in sample_I to each in sample_J
+        if I==J
+            PDXIJ = pdist2(MI, MJ, distfun_II); % distance between points in sample_I
+        else
+            PDXIJ = pdist2(MI, MJ, distfun_IJ); % distance from each point in sample_I to each in sample_J
+        end
         knnDSTIJ = sort(PDXIJ,2);        % get KNN
         epsilonIJ = knnDSTIJ(:,k_mat(I,J));       % distance to KNN
         PDXIJ = bsxfun(@rdivide,PDXIJ,epsilonIJ); % normalize PDXIJ
         KIJ = exp(-PDXIJ.^a);            % apply alpha-decaying kernel
-        K(idx_I, idx_J) = KIJ * ((1-beta)/(n_samp-1));  % fill out values in K for NN from I -> J
+        K(idx_I, idx_J) = KIJ;  % fill out values in K for NN from I -> J
         if I~=J
             PDXJI = PDXIJ';         % Repeat to find KNN from J -> I
             knnDSTJI = sort(PDXJI,2);
             epsilonJI = knnDSTJI(:,k_mat(I,J));
             PDXJI = bsxfun(@rdivide,PDXJI,epsilonJI);
             KJI = exp(-PDXJI.^a);
-            K(idx_J, idx_I) = KJI * ((1-beta)/(n_samp-1));
+            K(idx_J, idx_I) = KJI;
         end
         if I==J
             K(idx_I, idx_J) = K(idx_I, idx_J) * beta;
+        else
+%             K(idx_I, idx_J) = K(idx_I, idx_J) * ((1-beta)/(n_samp-1));
+%             K(idx_J, idx_I) = K(idx_J, idx_I) * ((1-beta)/(n_samp-1));
+            K(idx_I, idx_J) = K(idx_I, idx_J);
+            K(idx_J, idx_I) = K(idx_J, idx_I);
         end
+        
     end
 end
 
 disp 'computing operator'
 
-K = K + K'; % MNN
-DiffDeg = diag(sum(K,2)); % degrees
-DiffOp = DiffDeg^(-1)*K; % row stochastic
+switch kernel_symm
+    case '+'
+        K = K + K';
+    case '*'
+        K = K * K';
+    case '.*'
+        K = K .* K';
+    otherwise
+        disp('Unknown kernel symmetrization')
+end
+
+DiffOp = bsxfun(@rdivide, K, sum(K,2));
 
 disp 'done'

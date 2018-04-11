@@ -1,8 +1,8 @@
 %% init
-cd('~/git_projects/Blitz/')
-out_base = '~/Dropbox/Phate/Sherm_bm/figures/Dec7/'
+cd('~/Documents/GitHub/Blitz/')
+out_base = '~/Dropbox/Phate/Sherm_bm/figures/Jan12/'
 mkdir(out_base);
-addpath(genpath('~/git_projects/Blitz/'));
+addpath(genpath('~/Documents/GitHub/Blitz/'));
 rseed = 7;
 
 %% load data
@@ -25,13 +25,16 @@ sdata_raw = merge_data({sdata_p9, sdata_p10, sdata_p11, sdata_p12, sdata_p13, sd
 %% to sdata
 sdata = sdata_raw
 
+%% just MPP2
+sdata = sdata_p14
+
 %% random sample
-N = 2000;
+N = 3000;
 cells_keep = randsample(size(sdata.data,1), N);
 sdata.data = sdata.data(cells_keep,:);
 sdata.cells = sdata.cells(cells_keep);
 sdata.library_size = sdata.library_size(cells_keep);
-sdata.samples = sdata.samples(cells_keep);
+%sdata.samples = sdata.samples(cells_keep);
 
 %% remove empty genes
 genes_keep = sum(sdata.data) > 0;
@@ -58,9 +61,11 @@ pc = svdpca(sdata.data, npca, 'random');
 %% plot PCA
 figure;
 c = sdata.samples;
+c = 'k'
+c = get_channel_data(sdata_imputed, 'CD34');
 scatter3(pc(:,1), pc(:,2), pc(:,3), 5, c, 'filled');
-colormap(jet)
-%colormap(parula)
+%colormap(jet)
+colormap(parula)
 set(gca,'xticklabel',[]);
 set(gca,'yticklabel',[]);
 set(gca,'zticklabel',[]);
@@ -78,14 +83,14 @@ print('-dtiff',[out_base 'PCA_3D_samples.tiff']);
 %close
 
 %% MNN kernel
-k = 2;
-a = 30;
+k = 3;
+a = 15;
 DiffOp = mnn_kernel(pc, sdata.samples, [], k, a);
 
 %% normal kernel
-% k = 3;
-% a = 15;
-% DiffOp = mnn_kernel(pc, [], [], k, a);
+k = 3;
+a = 15;
+DiffOp = mnn_kernel(pc, [], [], k, a);
 
 %% MAGIC
 tic;
@@ -104,6 +109,7 @@ pc_magic = svdpca(sdata_imputed.data, npca, 'random');
 %% plot PCA after MAGIC 3D
 figure;
 c = sdata.samples;
+c = 'k'
 scatter3(pc_magic(:,1), pc_magic(:,2), pc_magic(:,3), 5, c, 'filled');
 colormap(jet)
 %colormap(parula)
@@ -193,6 +199,26 @@ set(gcf,'paperposition',[0 0 8 6]);
 print('-dtiff',[out_base 'MMDS_MAGIC_2D_samples.tiff']);
 close
 
+%% plot MMDS MAGIC 2D
+figure;
+%c = sdata.samples;
+gene = 'CD34';
+c = get_channel_data(sdata_imputed, gene);
+scatter(Y_mmds_magic_2D(:,1), Y_mmds_magic_2D(:,2), 5, c, 'filled');
+colormap(parula)
+set(gca,'xticklabel',[]);
+set(gca,'yticklabel',[]);
+axis tight
+title 'MMDS MAGIC'
+xlabel 'MDS1'
+ylabel 'MDS2'
+h = colorbar;
+ylabel(h, gene);
+set(h,'yticklabel',[]);
+set(gcf,'paperposition',[0 0 8 6]);
+print('-dtiff',[out_base 'MMDS_raw_2D_samples.tiff']);
+%close
+
 %% PHATE with Hellinger distance
 t = 6;
 distfun_mds = 'euclidean';
@@ -252,5 +278,62 @@ ylabel(h, 'Tumor score');
 set(h,'yticklabel',[]);
 set(gcf,'paperposition',[0 0 8 6]);
 print('-dtiff',[out_base 'MMDS_PHATE_2D_samples_hellinhger.tiff']);
+%close
+
+%% Metric MDS raw 2D
+X = pc;
+X = squareform(pdist(X, 'euclidean'));
+ndim = 2;
+opt = statset('display', 'iter');
+Y_start = randmds(X, ndim);
+Y_mmds = mdscale(X, ndim, 'options', opt, 'start', Y_start, 'Criterion', 'metricstress');
+
+%% plot MMDS raw 2D
+figure;
+%c = sdata.samples;
+c = get_channel_data(sdata_imputed, 'CD34');
+scatter(Y_mmds(:,1), Y_mmds(:,2), 5, c, 'filled');
+colormap(parula)
+set(gca,'xticklabel',[]);
+set(gca,'yticklabel',[]);
+axis tight
+title 'MMDS PHATE'
+xlabel 'MDS1'
+ylabel 'MDS2'
+h = colorbar;
+ylabel(h, 'Tumor score');
+set(h,'yticklabel',[]);
+set(gcf,'paperposition',[0 0 8 6]);
+print('-dtiff',[out_base 'MMDS_raw_2D_samples.tiff']);
+%close
+
+%% Metric MDS raw 3D
+X = pc;
+X = squareform(pdist(X, 'euclidean'));
+ndim = 3;
+opt = statset('display', 'iter');
+Y_start = randmds(X, ndim);
+Y_mmds_3D = mdscale(X, ndim, 'options', opt, 'start', Y_start, 'Criterion', 'metricstress');
+
+%% plot MMDS raw 3D
+figure;
+%c = sdata.samples;
+gene = 'CD34';
+c = get_channel_data(sdata_imputed, gene);
+scatter3(Y_mmds_3D(:,1), Y_mmds_3D(:,2), Y_mmds_3D(:,3), 5, c, 'filled');
+colormap(parula)
+set(gca,'xticklabel',[]);
+set(gca,'yticklabel',[]);
+set(gca,'zticklabel',[]);
+axis tight
+title 'MMDS PHATE'
+xlabel 'MDS1'
+ylabel 'MDS2'
+zlabel 'MDS2'
+h = colorbar;
+ylabel(h, gene);
+set(h,'yticklabel',[]);
+set(gcf,'paperposition',[0 0 8 6]);
+print('-dtiff',[out_base 'MMDS_raw_3D_samples.tiff']);
 %close
 
