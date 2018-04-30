@@ -10,5 +10,6 @@ Use Tikhonov regularization to regress across the manifold.
 2. Graphtools
 	https://github.com/KrishnaswamyLab/graphtools
 	Used for importing data, building graphs, and getting gradient matrices. 
+	
 ### Usage:
 TBA
