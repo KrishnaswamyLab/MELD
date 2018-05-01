@@ -4,7 +4,7 @@ function prcts = batch_quantify(x, labels, k,npca, distfun)
     % samples in label. OUTPUT IS asymmetric because we are looking from
     % j to all neighbors k, which is not symmetric.  Row-wise
     % interpretation is best. 
-%   [Y, K, L] = hpf0(x,labels, k, npca, distfun)
+%   prcts = batch_quantify(x,labels, k, npca, distfun)
 %      Inputs:
 %           x: input data to be measured
 %           labels: integer labels starting at 1, incrementing by 1. eg 
