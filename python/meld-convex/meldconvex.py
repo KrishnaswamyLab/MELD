@@ -1,15 +1,19 @@
 import numpy as np
 import pygsp
 import graphtools
-
-def meld(X, gamma, g, method = 'lsq'):
+import phate
+import scipy.sparse as sparse
+def meld(X, gamma, g, solver = 'cheby', fi = 'regularizedlaplacian', alpha = 2):
     """
     Performs convex meld on the input signal. 
     This function solves:
 
         (1) :math:`sol = argmin_{z} \frac{1}{2}\|x - z\|_2^2 + \gamma \| \nabla x\|_2^2`
+        
+        OR 
+        regularizes (1) using \inner{X, randomwalk(L)*X}, the p-step random walk (math to come)
 
-    Note the nice following relationship:
+    Note the nice following relationship for (1):
 
         (2) :math:`x^T L x = \| \nabla x\|_2^2`
 
@@ -17,6 +21,8 @@ def meld(X, gamma, g, method = 'lsq'):
 
         (3) :math:`sol = h(L)x` with :math:`h(\lambda) := \frac{1}{1+\gamma\lambda}`
         
+    We use (3) by default as it is faster in the case of few input signals.
+    
 
     Parameters
     ----------
@@ -24,25 +30,39 @@ def meld(X, gamma, g, method = 'lsq'):
         2 dimensional input signal array to meld.
 
     gamma : int
-        Amount of smoothing to apply.
+        Amount of smoothing to apply.  Acts as 'p' parameter if fi == 'randomwalk'
 
     g : graphtools.Graph object
         Graph to perform data smoothing over.
 
-    method : string, optional, Default: 'lsq'
-        Method to solve convex problem. 'lsq' is the only implemented version currently.
+    Solver : string, optional, Default: 'cheby'
+        Method to solve convex problem.
+        'cheby' uses a chebyshev polynomial approximation of the corresponding filter
+        'matrix' solves the convex problem exactly
+    
+    fi: string, optional, Default: 'regularizedlaplacian'
+        Filter to use for (1). 
+        'regularizedlaplacian' is the exact solution of (1)
+        'randomwalk' is a randomwalk polynomial that is related to (1)
         
     Returns
     -------
     sol : ndarray [n, p]
         2 dimensional array of smoothed input signals
     """
-    if not isinstance(method, str):
-        raise TypeError("Input method should be a string")
-    method = method.lower()
-    if method != 'lsq':
-        raise NotImplementedError('{} method is not currently implemented.'.format(method))
     
+    if not isinstance(solver, str):
+        raise TypeError("Input method should be a string")
+    solver = solver.lower()
+    if solver not in ['matrix','cheby']:
+        raise NotImplementedError('{} solver is not currently implemented.'.format(solver))
+        
+    if not isinstance(fi, str):
+        raise TypeError("Input filter should be a string")
+    fi=fi.lower()
+    if fi not in ['regularizedlaplacian','randomwalk']:
+        raise NotImplementedError('{} filter is not currently implemented.'.format(fi))
+        
     if not (isinstance(g, graphtools.BaseGraph) or isinstance(g,pygsp.graphs.Graph)):
         raise TypeError("Input graph should be of type graphtools.BaseGraph")
     if X.shape[0] != g.N:
@@ -52,9 +72,34 @@ def meld(X, gamma, g, method = 'lsq'):
         else:
             raise ValueError("Input data and input graph are not of the same size")
     
-    mat = (np.eye(g.N) + gamma * g.L)
-    sol = np.linalg.lstsq(mat, X)
-    
-    return sol
+    if fi =='randomwalk':
+        D = sparse.diags(np.ravel(np.power(g.W.sum(0),-1)), 0).tocsc() # used for random walk stochasticity
+    if solver == 'matrix':
+        #use matrix inversion / powering
+        I = scipy.sparse.identity(G.N)
+        if fi == 'regularizedlaplacian': # fTLf 
+            mat = np.linalg.inv((I + gamma * g.L))
             
-    
+        elif fi == 'randomwalk': #p-step random walk
+            mat = (alpha*I - (G.L*D))**gamma
+            
+        sol = mat.T @ X #apply the matrix
+        sol = np.squeeze(np.asarray(sol)) #deliver a vector
+        
+    else:
+         # use approximations 
+        if fi == 'regularizedlaplacian': # fTLf 
+            filterfunc = lambda x: 1/(1+gamma*x)
+            
+        elif fi == 'randomwalk':  #p-step random walk
+            L_bak = g.L 
+            g.L = (L_bak*D).T #change the eigenbasis by normalizing by degree (stochasticity)
+            filterfunc = lambda x: (alpha-x)**gamma
+            
+        filt = pygsp.filters.Filter(G, filterfunc) #build filter
+        sol = filt.filter(X)  # apply filter
+        if fi == 'randomwalk':
+            G.L = L_bak #restore L
+            
+            
+    return sol
