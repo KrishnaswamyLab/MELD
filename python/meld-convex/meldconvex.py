@@ -43,7 +43,7 @@ def meld(X, gamma, g, solver = 'cheby', fi = 'regularizedlaplacian', alpha = 2):
     fi: string, optional, Default: 'regularizedlaplacian'
         Filter to use for (1). 
         'regularizedlaplacian' is the exact solution of (1)
-        'randomwalk' is a randomwalk polynomial that is related to (1)
+        'randomwalk' is a randomwalk polynomial that is related to diffusion via rw = ((alpha-1)I+P)^t
         
     Returns
     -------
