@@ -96,7 +96,22 @@ def mnn_kernel(X, k, a, beta=1, gamma=0.99, kernel_symm='gamma', sample_idx=None
     elif kernel_symm == '@':
         K = K * K.T
     elif kernel_symm == 'gamma':
-        K = (gamma * np.minimum(K,K.T)) + ((1-gamma) * np.maximum(K,K.T));
+        if np.shape(gamma) == ():
+            K = (gamma * np.minimum(K,K.T)) + ((1-gamma) * np.maximum(K,K.T));
+        else:
+            # Gamma can be a matrix with specific values transitions for each batch
+            # This allows for technical replicates and experimental samples to be
+            # Corrected simulatenously
+            if not np.shape(gamma)[0] == len(set(sample_idx)):
+                raise ValueError('Matrix gamma must have one entry per I -> J kernel')
+            # Filling out gamma (n_samples, n_samples) to G (n_cells, n_cells)
+            G = pd.DataFrame(np.zeros((len(sample_idx), len(sample_idx))))
+            for ix, si in enumerate(set(sample_idx)):
+                for jx, sj in enumerate(set(sample_idx)):
+                    G.iloc[sample_idx == si, sample_idx == sj] = gamma[ix,jx]
+            K = (G * np.minimum(K,K.T)) + ((1-G) * np.maximum(K,K.T))
+
+
 
 
     K = np.multiply(K, K.T)
@@ -123,8 +138,6 @@ def calc_kernel_sparse(MI, MJ, k, distfun):
     knn2_data = knn2.kneighbors(pca_data)
     end = timer()
     print(end - start)
-
-
 
 # computes kernel and operator
 def get_operator(data=None, k=5, a=10):
