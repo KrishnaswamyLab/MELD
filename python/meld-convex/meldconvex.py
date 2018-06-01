@@ -63,8 +63,9 @@ def meld(X, gamma, g, solver = 'cheby', fi = 'regularizedlaplacian', alpha = 2):
     if fi not in ['regularizedlaplacian','randomwalk']:
         raise NotImplementedError('{} filter is not currently implemented.'.format(fi))
         
-    if not (isinstance(g, graphtools.BaseGraph) or isinstance(g,pygsp.graphs.Graph)):
+    if not (isinstance(g,  graphtools.base.BaseGraph) or isinstance(g,pygsp.graphs.Graph)):
         raise TypeError("Input graph should be of type graphtools.BaseGraph")
+        
     if X.shape[0] != g.N:
         if X.shape[1] == g.N:
             print("input matrix is column-wise rather than row-wise. transposing (output will be transposed)")
@@ -76,12 +77,12 @@ def meld(X, gamma, g, solver = 'cheby', fi = 'regularizedlaplacian', alpha = 2):
         D = sparse.diags(np.ravel(np.power(g.W.sum(0),-1)), 0).tocsc() # used for random walk stochasticity
     if solver == 'matrix':
         #use matrix inversion / powering
-        I = scipy.sparse.identity(G.N)
+        I = sparse.identity(g.N)
         if fi == 'regularizedlaplacian': # fTLf 
-            mat = np.linalg.inv((I + gamma * g.L))
+            mat = sparse.linalg.inv((I + gamma * g.L))
             
         elif fi == 'randomwalk': #p-step random walk
-            mat = (alpha*I - (G.L*D))**gamma
+            mat = (alpha*I - (g.L*D))**gamma
             
         sol = mat.T @ X #apply the matrix
         sol = np.squeeze(np.asarray(sol)) #deliver a vector
@@ -96,10 +97,10 @@ def meld(X, gamma, g, solver = 'cheby', fi = 'regularizedlaplacian', alpha = 2):
             g.L = (L_bak*D).T #change the eigenbasis by normalizing by degree (stochasticity)
             filterfunc = lambda x: (alpha-x)**gamma
             
-        filt = pygsp.filters.Filter(G, filterfunc) #build filter
+        filt = pygsp.filters.Filter(g, filterfunc) #build filter
         sol = filt.filter(X)  # apply filter
         if fi == 'randomwalk':
-            G.L = L_bak #restore L
+            g.L = L_bak #restore L
             
             
     return sol
