@@ -26,4 +26,9 @@ pip install --user git+git://github.com/KrishnaswamyLab/MELD.git#subdirectory=py
 
 ## Usage
 
-TBA
+```
+import meld
+import graphtools
+G = graphtools.Graph(data)
+meld_score = meld.meld(label, gamma=0.5, g=G)
+```
