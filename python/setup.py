@@ -10,7 +10,7 @@ install_requires = [
 ]
 
 version_py = os.path.join(os.path.dirname(
-    __file__), 'meld-convex', 'version.py')
+    __file__), 'meld', 'version.py')
 version = open(version_py).read().strip().split(
     '=')[-1].replace('"', '').strip()
 
@@ -19,12 +19,12 @@ if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[:2] < (3, 5):
 
 readme = open('README.md').read()
 
-setup(name='meld-convex',
+setup(name='meld',
       version=version,
       description='MELD',
       author='Daniel Burkhardt, Krishnaswamy Lab, Yale University',
       author_email='daniel.burkhardt@yale.edu',
-      packages=['meld-convex', ],
+      packages=['meld', ],
       license='GNU General Public License Version 2',
       install_requires=install_requires,
       long_description=readme,
