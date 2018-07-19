@@ -51,3 +51,6 @@ docs/_build/
 
 #syncthing
 .syncthing.*
+
+# Mac detritus
+.DS_Store
