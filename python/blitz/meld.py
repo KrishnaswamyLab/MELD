@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist, squareform, pdist
 from sklearn.metrics import mutual_info_score
+import time
 
-
-def mnn_kernel(X, k, a, beta=0, sample_idx=None, kernel_symm='+', metric='euclidean', verbose=False):
+def mnn_kernel(X, k, a, beta=1, gamma=0.99, kernel_symm='gamma', sample_idx=None, metric='euclidean', verbose=True):
     """
     Creates a kernel linking the k mutual nearest neighbors (MNN) across datasets
     and performs diffusion on this kernel using MAGIC to apply batch correction.
@@ -21,18 +21,21 @@ def mnn_kernel(X, k, a, beta=0, sample_idx=None, kernel_symm='+', metric='euclid
         Specifies alpha for the α-decaying kernel
 
     beta: float (0:1]
-        This parameter weights the MNN kernel. Values closer to 1 increase batch
+        This parameter weights the MNN kernel. Values closer to 0 increase batch
         correction.
+
+    gamma: float (0:1]
+        This parameter alters how the MNN kernel is symmetrized. Values closer
+        to 1 are closer to K .* K.T. Values around 0.5 are like averaging. Values
+        Values close to 0 are like adding.
+
+    kernel_symm: str ['+', '*', '@', 'gamma']
+        This defines how the MNN kernel is symmetrized which affects batch correction.
+        If gamma is passed, then the value for the `gamma` parameter is used.
 
     sample_idx : ndarray [n], optional, default: None
         1 dimensional array specifying the sample to which each observation in
         X belongs. If left empty, X is assumed to be one sample
-
-    kernel_symm : string, optional, default: '+'
-        Defines method of MNN symmetrization.
-        '+'  : additive
-        '*'  : multiplicative
-        '.*' : inner product
 
     metric : string, optional, default: 'euclidean'
         reccomended values: 'eucliean' and 'cosine'
@@ -46,7 +49,7 @@ def mnn_kernel(X, k, a, beta=0, sample_idx=None, kernel_symm='+', metric='euclid
     """
     one_sample = (sample_idx is None) or (np.sum(sample_idx) == len(sample_idx))
     if not one_sample:
-        if not (0 < beta <= 1):
+        if not (0 <= beta <= 1):
             raise ValueError('Beta must be in the half-open interval (0:1]')
     else:
         sample_idx = np.ones(len(X))
@@ -58,7 +61,8 @@ def mnn_kernel(X, k, a, beta=0, sample_idx=None, kernel_symm='+', metric='euclid
     K = pd.DataFrame(K)
 
     # Build KNN kernel
-    if verbose: print('Finding KNN...')
+    if verbose: print('Finding MNN...')
+    tic = time.time()
     for si in samples:
         X_i = X[sample_idx == si]            # get observations in sample i
         for sj in samples:
@@ -82,15 +86,35 @@ def mnn_kernel(X, k, a, beta=0, sample_idx=None, kernel_symm='+', metric='euclid
                 pdxe_ji = pdx_ji / e_ji[:, np.newaxis]
                 k_ji = np.exp(-1 * (pdxe_ji** a))
                 K.iloc[sample_idx == si, sample_idx == sj] = k_ij  # fill out values in K for NN on diagnoal
-
+    if verbose: print('Calculated MNN in %.2f minutes.'%((time.time()-tic)/60))
     if verbose: print('Computing Operator...')
-    if kernel_symm=='+':
-        K = K + K.T
-    elif kernel_symm=='*':
-        K = K @ K.T
-    elif kernel_symm=='.*':
-        K = K * K.T
 
+    if kernel_symm == '+':
+        K = K + K.T
+    elif kernel_symm == '*':
+        K = K @ K.T
+    elif kernel_symm == '@':
+        K = K * K.T
+    elif kernel_symm == 'gamma':
+        if np.shape(gamma) == ():
+            K = (gamma * np.minimum(K,K.T)) + ((1-gamma) * np.maximum(K,K.T));
+        else:
+            # Gamma can be a matrix with specific values transitions for each batch
+            # This allows for technical replicates and experimental samples to be
+            # Corrected simulatenously
+            if not np.shape(gamma)[0] == len(set(sample_idx)):
+                raise ValueError('Matrix gamma must have one entry per I -> J kernel')
+            # Filling out gamma (n_samples, n_samples) to G (n_cells, n_cells)
+            G = pd.DataFrame(np.zeros((len(sample_idx), len(sample_idx))))
+            for ix, si in enumerate(set(sample_idx)):
+                for jx, sj in enumerate(set(sample_idx)):
+                    G.iloc[sample_idx == si, sample_idx == sj] = gamma[ix,jx]
+            K = (G * np.minimum(K,K.T)) + ((1-G) * np.maximum(K,K.T))
+
+
+
+
+    K = np.multiply(K, K.T)
     diff_deg = np.diag(np.sum(K,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),K)
     if verbose: print('Done!')
@@ -105,7 +129,15 @@ def magic(X, diff_op, t='auto', verbose=False):
     elif t == 'auto':
         data_imputed = X
 
-
+def calc_kernel_sparse(MI, MJ, k, distfun):
+    knn1 = NearestNeighbors(n_neighbors=5, algorithm="kd_tree")
+    knn2 = NearestNeighbors(n_neighbors=5, algorithm="kd_tree")
+    knn1.fit(MI)
+    knn2.fit(MJ)
+    knn1_data = knn1.kneighbors(pca_data)
+    knn2_data = knn2.kneighbors(pca_data)
+    end = timer()
+    print(end - start)
 
 # computes kernel and operator
 def get_operator(data=None, k=5, a=10):
@@ -118,6 +150,36 @@ def get_operator(data=None, k=5, a=10):
     diff_deg = np.diag(np.sum(gs_ker,0)) # degrees
     diff_op = np.dot(np.diag(np.diag(diff_deg)**(-1)),gs_ker) # row stochastic -> Markov operator
     return diff_op
+
+def compute_operator_sparse(data, k=10, distance_metric='euclidean'):
+
+    N = data.shape[0]
+
+    # Nearest neighbors
+    print('Computing distances')
+    nbrs = NearestNeighbors(n_neighbors=k, metric=distance_metric).fit(data)
+    distances, indices = nbrs.kneighbors(data)
+
+    # Adjacency matrix
+    print('Computing kernel')
+    rows = np.zeros(N * k, dtype=np.int32)
+    cols = np.zeros(N * k, dtype=np.int32)
+    location = 0
+    for i in range(N):
+        inds = range(location, location + k)
+        rows[inds] = indices[i, :]
+        cols[inds] = i
+        location += k
+
+    W = csr_matrix( (np.ones(cols.shape), (rows, cols)), shape=[N, N] )
+
+    # Symmetrize W
+    W = W + W.T
+
+    #markov normalization
+    T = W / W.sum(axis=1)[:, None]
+
+    return T
 
 def normalize_imputed_vector(v, sample_idx):
     """

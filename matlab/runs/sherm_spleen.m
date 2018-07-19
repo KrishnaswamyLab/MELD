@@ -41,9 +41,13 @@ sdata.mpg = sdata.mpg(genes_keep);
 sdata.cpg = sdata.cpg(genes_keep);
 sdata = sdata.recompute_name_channel_map()
 
+%% remove means per sample
+sdata_norm = sdata;
+sdata_norm.data = subtract_means(sdata.data, sdata.samples);
+
 %% PCA
 npca = 100;
-pc = svdpca(sdata.data, npca, 'random');
+pc = svdpca(sdata_norm.data, npca, 'random');
 
 %% plot PCA
 figure;
@@ -68,7 +72,12 @@ print('-dtiff',[out_base 'PCA_3D_samples.tiff']);
 %% MNN kernel
 k = 3;
 a = 15;
-DiffOp = mnn_kernel_beta(pc, sdata.samples, [], k, a, 'euclidean', 1/2);
+DiffOp = mnn_kernel_beta(pc, sdata.samples, [], k, a, 'euclidean', 0.5);
+
+%% MNN kernel
+% k = 3;
+% a = 15;
+% DiffOp = mnn_kernel_beta(pc, [], [], k, a, 'euclidean', 0.5);
 
 %% MAGIC
 tic;
