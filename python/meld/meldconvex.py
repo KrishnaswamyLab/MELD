@@ -62,9 +62,9 @@ def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
         raise NotImplementedError(
             '{} filter is not currently implemented.'.format(fi))
 
-    if not (isinstance(g,  graphtools.base.BaseGraph) or
-            isinstance(g, pygsp.graphs.Graph)):
-        raise TypeError("Input graph should be of type graphtools.BaseGraph")
+    if not isinstance(g, pygsp.graphs.Graph):
+        raise TypeError("Input graph should be of type pygsp.graphs.Graph. "
+                        "If using graphtools, use the `use_pygsp=True` flag.")
 
     if X.shape[0] != g.N:
         if X.shape[1] == g.N:
