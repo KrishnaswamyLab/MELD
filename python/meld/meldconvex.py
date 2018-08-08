@@ -2,6 +2,8 @@ import numpy as np
 import pygsp
 import graphtools
 import scipy.sparse as sparse
+import inspect
+from sklearn.cluster import KMeans
 
 
 def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
@@ -114,3 +116,56 @@ def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
             g.L = L_bak  # restore L
 
     return sol
+
+
+def spectrogram_clustering(g, s = None,  t = 10, saturation = 0.5, kernel = None, clusterobj = None, nclusts = 5, precomputed_nwgft = None, **kwargs):
+    saturation_func = lambda x,alpha: np.tanh(alpha * np.abs(x.T)) #TODO: extend to allow different saturation functions
+    if not(isinstance(clusterobj, KMeans)):
+        #todo: add support for other clustering algorithms
+        if clusterobj is None:
+            clusterobj = KMeans(n_clusters = nclusts, **kwargs)
+        else:
+            raise TypeError(
+                "Currently only sklearn.cluster.KMeans is supported for clustering object. "
+                "Got {}".format(type(clusterobj)))
+            
+    if precomputed_nwgft: #we don't need to do much if we have a precomputed nwgft
+        C = precomputed_nwgft
+    else:
+        #check that signal and graph are defined
+        if s is None:
+            raise RuntimeError(
+                    "If no precomputed_nwgft, then a signal s should be supplied.")
+        if not isinstance(g, pygsp.graphs.Graph):
+            if isinstance(g, graphtools.base.BaseGraph):
+                raise TypeError(
+                    "Input graph should be of type pygsp.graphs.Graph. "
+                    "When using graphtools, use the `use_pygsp=True` flag.")
+            else:
+                raise TypeError(
+                    "Input graph should be of type pygsp.graphs.Graph. "
+                    "Got {}".format(type(g)))
+        #build kernel
+        if kernel and not(inspect.isfunction(kernel)):
+                raise TypeError(
+                    "Input kernel should be a lambda function (accepting "
+                    "eigenvalues of the graph laplacian) or none. "
+                    "Got {}".format(type(kernel)))
+        if kernel is None:
+            kernel = lambda x:  np.exp((-t*x)/g.lmax) #definition of the heat kernel
+        
+        ke = kernel(g.e) #eval kernel over eigenvalues of G
+        ktrans = np.sqrt(g.N) * (g.U @ np.multiply(ke[:,None],g.U.T)) #vertex domain translation of the kernel. 
+        
+        C = np.empty((g.N,g.N))
+        
+        for i in range(0,g.N): #build frame matrix
+            kmod = np.matlib.repmat(ktrans[:,i], 1,g.N) # copy one translate Ntimes
+            kmod = np.reshape(kmod,(g.N,g.N)).T 
+            kmod = (g.U/g.U[:,0]) * kmod # modulate the copy at each frequency of G 
+            kmod = kmod / np.linalg.norm(kmod,axis = 0) #normalize it
+            C[:,i] = kmod.T@s # compute nwgft frame
+    
+    labels = clusterobj.fit_predict(saturation_func(C,saturation))
+    
+    return C, labels, saturation_func
