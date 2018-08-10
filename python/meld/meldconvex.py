@@ -6,7 +6,7 @@ import inspect
 from sklearn.cluster import KMeans
 
 
-def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
+def meld(X, gamma, g, offset = 0, order = 1, solver='cheby', fi='regularizedlaplacian', alpha=2):
     """
     Performs convex meld on the input signal.
     This function solves:
@@ -35,6 +35,11 @@ def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
         Amount of smoothing to apply.  Acts as 'p' parameter if fi == 'randomwalk'
     g : graphtools.Graph object
         Graph to perform data smoothing over.
+    offset: int, optional, Default: 0
+        Amount to shift the MELD filter in the eigenvalue spectrum.  Recommend using
+        an eigenvalue from g based on the spectral distribution.
+    order: int, optional, Default: 1
+        Falloff and smoothness of the filter.   High order leads to square-like filters.
     Solver : string, optional, Default: 'cheby'
         Method to solve convex problem.
         'cheby' uses a chebyshev polynomial approximation of the corresponding filter
@@ -43,7 +48,7 @@ def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
         Filter to use for (1).
         'regularizedlaplacian' is the exact solution of (1)
         'randomwalk' is a randomwalk polynomial that is related to diffusion via rw = ((alpha-1)I+P)^t
-
+    
     Returns
     -------
     sol : ndarray [n, p]
@@ -91,8 +96,7 @@ def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
         # use matrix inversion / powering
         I = sparse.identity(g.N)
         if fi == 'regularizedlaplacian':  # fTLf
-            mat = sparse.linalg.inv((I + gamma * g.L))
-
+            mat = sparse.linalg.inv(I + np.matrix_power(gamma * g.L-offset*I, order))
         elif fi == 'randomwalk':  # p-step random walk
             mat = (alpha * I - (g.L * D))**gamma
 
@@ -102,7 +106,7 @@ def meld(X, gamma, g, solver='cheby', fi='regularizedlaplacian', alpha=2):
     else:
         # use approximations
         if fi == 'regularizedlaplacian':  # fTLf
-            filterfunc = lambda x: 1 / (1 + gamma * x)
+            filterfunc = lambda x: 1 / (1 + (gamma * x-offset)**order)
 
         elif fi == 'randomwalk':  # p-step random walk
             L_bak = g.L
@@ -129,7 +133,7 @@ def spectrogram_clustering(g, s = None,  t = 10, saturation = 0.5, kernel = None
                 "Currently only sklearn.cluster.KMeans is supported for clustering object. "
                 "Got {}".format(type(clusterobj)))
             
-    if precomputed_nwgft: #we don't need to do much if we have a precomputed nwgft
+    if precomputed_nwgft is not None: #we don't need to do much if we have a precomputed nwgft
         C = precomputed_nwgft
     else:
         #check that signal and graph are defined
@@ -151,7 +155,7 @@ def spectrogram_clustering(g, s = None,  t = 10, saturation = 0.5, kernel = None
                     "Input kernel should be a lambda function (accepting "
                     "eigenvalues of the graph laplacian) or none. "
                     "Got {}".format(type(kernel)))
-        if kernel is None:
+        if kernel is None:  
             kernel = lambda x:  np.exp((-t*x)/g.lmax) #definition of the heat kernel
         
         ke = kernel(g.e) #eval kernel over eigenvalues of G
