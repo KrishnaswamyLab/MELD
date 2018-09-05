@@ -71,18 +71,18 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
         raise NotImplementedError(
             '{} filter is not currently implemented.'.format(fi))
 
-    if not isinstance(g, pygsp.graphs.Graph):
-        if isinstance(g, graphtools.base.BaseGraph):
+    if not isinstance(G, pygsp.graphs.Graph):
+        if isinstance(G, graphtools.base.BaseGraph):
             raise TypeError(
                 "Input graph should be of type pygsp.graphs.Graph. "
                 "When using graphtools, use the `use_pygsp=True` flag.")
         else:
             raise TypeError(
                 "Input graph should be of type pygsp.graphs.Graph. "
-                "Got {}".format(type(g)))
+                "Got {}".format(type(G)))
 
-    if X.shape[0] != g.N:
-        if len(X.shape) > 1 and X.shape[1] == g.N:
+    if X.shape[0] != G.N:
+        if len(X.shape) > 1 and X.shape[1] == G.N:
             print(
                 "input matrix is column-wise rather than row-wise. "
                 "transposing (output will be transposed)")
@@ -90,18 +90,18 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
         else:
             raise ValueError(
                 "Input data ({}) and input graph ({}) "
-                "are not of the same size".format(X.shape, g.N))
+                "are not of the same size".format(X.shape, GN))
 
     if fi == 'randomwalk':
         # used for random walk stochasticity
-        D = sparse.diags(np.ravel(np.power(g.W.sum(0), -1)), 0).tocsc()
+        D = sparse.diags(np.ravel(np.power(G.W.sum(0), -1)), 0).tocsc()
     if solver == 'matrix':
         # use matrix inversion / powering
-        I = sparse.identity(g.N)
+        I = sparse.identity(G.N)
         if fi == 'regularizedlaplacian':  # fTLf
-            mat = sparse.linalg.inv((I + np.matrix_power(beta * g.L-offset*I, order)).tocsc())
+            mat = sparse.linalg.inv((I + np.matrix_power(beta * G.L-offset*I, order)).tocsc())
         elif fi == 'randomwalk':  # p-step random walk
-            mat = (alpha * I - (g.L * D))**beta
+            mat = (alpha * I - (G.L * D))**beta
 
         sol = mat.T @ X  # apply the matrix
         sol = np.squeeze(np.asarray(sol))  # deliver a vector
@@ -112,23 +112,23 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
             filterfunc = lambda x: 1 / (1 + (beta * x-offset)**order)
 
         elif fi == 'randomwalk':  # p-step random walk
-            L_bak = g.L
+            L_bak = G.L
             # change the eigenbasis by normalizing by degree (stochasticity)
-            g.L = (L_bak * D).T
+            G.L = (L_bak * D).T
             filterfunc = lambda x: (alpha - x)**beta
 
-        g.estimate_lmax()
-        filt = pygsp.filters.Filter(g, filterfunc)  # build filter
+        G.estimate_lmax()
+        filt = pygsp.filters.Filter(G, filterfunc)  # build filter
         sol = filt.filter(X)  # apply filter
         if fi == 'randomwalk':
-            g.L = L_bak  # restore L
+            G.L = L_bak  # restore L
 
     sol = utils.convert_to_same_format(sol, X)
 
     return sol
 
 
-def spectrogram_clustering(g, s = None,  t = 10, saturation = 0.5, kernel = None, clusterobj = None, nclusts = 5, precomputed_nwgft = None, **kwargs):
+def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, kernel = None, clusterobj = None, nclusts = 5, precomputed_nwgft = None, **kwargs):
     saturation_func = lambda x,alpha: np.tanh(alpha * np.abs(x.T)) #TODO: extend to allow different saturation functions
     if not(isinstance(clusterobj, KMeans)):
         #todo: add support for other clustering algorithms
@@ -146,15 +146,15 @@ def spectrogram_clustering(g, s = None,  t = 10, saturation = 0.5, kernel = None
         if s is None:
             raise RuntimeError(
                     "If no precomputed_nwgft, then a signal s should be supplied.")
-        if not isinstance(g, pygsp.graphs.Graph):
-            if isinstance(g, graphtools.base.BaseGraph):
+        if not isinstance(G, pygsp.graphs.Graph):
+            if isinstance(G, graphtools.base.BaseGraph):
                 raise TypeError(
                     "Input graph should be of type pygsp.graphs.Graph. "
                     "When using graphtools, use the `use_pygsp=True` flag.")
             else:
                 raise TypeError(
                     "Input graph should be of type pygsp.graphs.Graph. "
-                    "Got {}".format(type(g)))
+                    "Got {}".format(type(G)))
         #build kernel
         if kernel and not(inspect.isfunction(kernel)):
                 raise TypeError(
@@ -162,17 +162,17 @@ def spectrogram_clustering(g, s = None,  t = 10, saturation = 0.5, kernel = None
                     "eigenvalues of the graph laplacian) or none. "
                     "Got {}".format(type(kernel)))
         if kernel is None:
-            kernel = lambda x:  np.exp((-t*x)/g.lmax) #definition of the heat kernel
+            kernel = lambda x:  np.exp((-t*x)/G.lmax) #definition of the heat kernel
 
-        ke = kernel(g.e) #eval kernel over eigenvalues of G
-        ktrans = np.sqrt(g.N) * (g.U @ np.multiply(ke[:,None],g.U.T)) #vertex domain translation of the kernel.
+        ke = kernel(G.e) #eval kernel over eigenvalues of G
+        ktrans = np.sqrt(G.N) * (G.U @ np.multiply(ke[:,None],G.U.T)) #vertex domain translation of the kernel.
 
-        C = np.empty((g.N,g.N))
+        C = np.empty((G.N,G.N))
 
-        for i in range(0,g.N): #build frame matrix
-            kmod = np.matlib.repmat(ktrans[:,i], 1,g.N) # copy one translate Ntimes
-            kmod = np.reshape(kmod,(g.N,g.N)).T
-            kmod = (g.U/g.U[:,0]) * kmod # modulate the copy at each frequency of G
+        for i in range(0,G.N): #build frame matrix
+            kmod = np.matlib.repmat(ktrans[:,i], 1,G.N) # copy one translate Ntimes
+            kmod = np.reshape(kmod,(G.N,G.N)).T
+            kmod = (G.U/G.U[:,0]) * kmod # modulate the copy at each frequency of G
             kmod = kmod / np.linalg.norm(kmod,axis = 0) #normalize it
             C[:,i] = kmod.T@s # compute nwgft frame
 
