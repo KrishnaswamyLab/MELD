@@ -35,7 +35,7 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
         2 dimensional input signal array to meld.
     G : graphtools.Graph object
         Graph to perform data smoothing over.
-    theta : int
+    beta : int
         Amount of smoothing to apply.  Acts as 'p' parameter if fi == 'randomwalk'
     offset: int, optional, Default: 0
         Amount to shift the MELD filter in the eigenvalue spectrum.  Recommend using
