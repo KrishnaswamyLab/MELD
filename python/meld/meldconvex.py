@@ -1,9 +1,11 @@
 import numpy as np
 import pygsp
 import graphtools
+import graphtools.base
 import scipy.sparse as sparse
 import inspect
 from sklearn.cluster import KMeans
+from . import utils
 
 
 def meld(X, gamma, g, offset = 0, order = 1, solver='cheby', fi='regularizedlaplacian', alpha=2):
@@ -80,14 +82,15 @@ def meld(X, gamma, g, offset = 0, order = 1, solver='cheby', fi='regularizedlapl
                 "Got {}".format(type(g)))
 
     if X.shape[0] != g.N:
-        if X.shape[1] == g.N:
+        if len(X.shape) > 1 and X.shape[1] == g.N:
             print(
                 "input matrix is column-wise rather than row-wise. "
                 "transposing (output will be transposed)")
             X = X.T
         else:
             raise ValueError(
-                "Input data and input graph are not of the same size")
+                "Input data ({}) and input graph ({}) "
+                "are not of the same size".format(X.shape, g.N))
 
     if fi == 'randomwalk':
         # used for random walk stochasticity
@@ -96,7 +99,7 @@ def meld(X, gamma, g, offset = 0, order = 1, solver='cheby', fi='regularizedlapl
         # use matrix inversion / powering
         I = sparse.identity(g.N)
         if fi == 'regularizedlaplacian':  # fTLf
-            mat = sparse.linalg.inv(I + np.matrix_power(gamma * g.L-offset*I, order))
+            mat = sparse.linalg.inv((I + np.matrix_power(gamma * g.L-offset*I, order)).tocsc())
         elif fi == 'randomwalk':  # p-step random walk
             mat = (alpha * I - (g.L * D))**gamma
 
@@ -114,10 +117,13 @@ def meld(X, gamma, g, offset = 0, order = 1, solver='cheby', fi='regularizedlapl
             g.L = (L_bak * D).T
             filterfunc = lambda x: (alpha - x)**gamma
 
+        g.estimate_lmax()
         filt = pygsp.filters.Filter(g, filterfunc)  # build filter
         sol = filt.filter(X)  # apply filter
         if fi == 'randomwalk':
             g.L = L_bak  # restore L
+
+    sol = utils.convert_to_same_format(sol, X)
 
     return sol
 
