@@ -128,7 +128,7 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
     return sol
 
 
-def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, kernel = None, clusterobj = None, nclusts = 5, precomputed_nwgft = None, **kwargs):
+def spectrogram_clustering(G, s,  t = 10, saturation = 0.5, kernel = None, clusterobj = None, nclusts = 5, precomputed_nwgft = None, **kwargs):
     saturation_func = lambda x,alpha: np.tanh(alpha * np.abs(x.T)) #TODO: extend to allow different saturation functions
     if not(isinstance(clusterobj, KMeans)):
         #todo: add support for other clustering algorithms
