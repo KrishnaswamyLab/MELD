@@ -91,7 +91,7 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
         else:
             raise ValueError(
                 "Input data ({}) and input graph ({}) "
-                "are not of the same size".format(X.shape, GN))
+                "are not of the same size".format(X.shape, G.N))
 
     if fi == 'randomwalk':
         # used for random walk stochasticity
@@ -165,18 +165,18 @@ def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = 
                         "Input kernel should be a lambda function (accepting "
                         "eigenvalues of the graph laplacian) or none. "
                         "Got {}".format(type(kernel)))
-            if kernel is None:  
+            if kernel is None:
                 kernel = lambda x:  np.exp((-t*x)/G.lmax) #definition of the heat kernel
 
             ke = kernel(g.e) #eval kernel over eigenvalues of G
-            ktrans = np.sqrt(g.N) * (g.U @ np.multiply(ke[:,None],G.U.T)) #vertex domain translation of the kernel. 
+            ktrans = np.sqrt(g.N) * (g.U @ np.multiply(ke[:,None],G.U.T)) #vertex domain translation of the kernel.
 
             C = np.empty((G.N,G.N))
 
             for i in range(0,g.N): #build frame matrix
                 kmod = np.matlib.repmat(ktrans[:,i], 1,G.N) # copy one translate Ntimes
-                kmod = np.reshape(kmod, (G.N, G.N)).T 
-                kmod = (G.U/G.U[:,0]) * kmod # modulate the copy at each frequency of G 
+                kmod = np.reshape(kmod, (G.N, G.N)).T
+                kmod = (G.U/G.U[:,0]) * kmod # modulate the copy at each frequency of G
                 kmod = kmod / np.linalg.norm(kmod, axis = 0) #normalize it
                 C[:,i] = kmod.T@s # compute nwgft frame
         else:
