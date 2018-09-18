@@ -9,7 +9,8 @@ from . import utils
 import sklearn.preprocessing as sklp
 
 
-def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlaplacian', alpha=2):
+def meld(X, G, beta, offset=0, order=1, solver='cheby',
+         fi='regularizedlaplacian', alpha=2):
     """
     Performs convex meld on the input signal.
     This function solves:
@@ -37,12 +38,15 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
     G : graphtools.Graph object
         Graph to perform data smoothing over.
     beta : int
-        Amount of smoothing to apply.  Acts as 'p' parameter if fi == 'randomwalk'
+        Amount of smoothing to apply.
+        Acts as 'p' parameter if fi == 'randomwalk'
     offset: int, optional, Default: 0
-        Amount to shift the MELD filter in the eigenvalue spectrum.  Recommend using
-        an eigenvalue from g based on the spectral distribution.
+        Amount to shift the MELD filter in the eigenvalue spectrum.
+        Recommend using an eigenvalue from g based on the
+        spectral distribution.
     order: int, optional, Default: 1
-        Falloff and smoothness of the filter.   High order leads to square-like filters.
+        Falloff and smoothness of the filter.
+        High order leads to square-like filters.
     Solver : string, optional, Default: 'cheby'
         Method to solve convex problem.
         'cheby' uses a chebyshev polynomial approximation of the corresponding filter
@@ -91,7 +95,7 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
         else:
             raise ValueError(
                 "Input data ({}) and input graph ({}) "
-                "are not of the same size".format(X.shape, GN))
+                "are not of the same size".format(X.shape, G.N))
 
     if fi == 'randomwalk':
         # used for random walk stochasticity
@@ -100,7 +104,8 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
         # use matrix inversion / powering
         I = sparse.identity(G.N)
         if fi == 'regularizedlaplacian':  # fTLf
-            mat = sparse.linalg.inv((I + np.matrix_power(beta * G.L-offset*I, order)).tocsc())
+            mat = sparse.linalg.inv(
+                (I + np.matrix_power(beta * G.L - offset * I, order)).tocsc())
         elif fi == 'randomwalk':  # p-step random walk
             mat = (alpha * I - (G.L * D))**beta
 
@@ -110,7 +115,7 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
     else:
         # use approximations
         if fi == 'regularizedlaplacian':  # fTLf
-            filterfunc = lambda x: 1 / (1 + (beta * x-offset)**order)
+            filterfunc = lambda x: 1 / (1 + (beta * x - offset)**order)
 
         elif fi == 'randomwalk':  # p-step random walk
             L_bak = G.L
@@ -129,25 +134,28 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
     return sol
 
 
-
-def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = True, kernel = None, clusterobj = None, nclusts = 5, precomputed_nwgft = None, **kwargs):
-    saturation_func = lambda x,alpha: np.tanh(alpha * np.abs(x.T)) #TODO: extend to allow different saturation functions
+def spectrogram_clustering(G, s=None,  t=10, saturation=0.5, use_diffop=True,
+                           kernel=None, clusterobj=None, nclusts=5,
+                           precomputed_nwgft=None, **kwargs):
+    # TODO: extend to allow different saturation functions
+    saturation_func = lambda x, alpha: np.tanh(alpha * np.abs(x.T))
     if not(isinstance(clusterobj, KMeans)):
-        #todo: add support for other clustering algorithms
+        # todo: add support for other clustering algorithms
         if clusterobj is None:
-            clusterobj = KMeans(n_clusters = nclusts, **kwargs)
+            clusterobj = KMeans(n_clusters=nclusts, **kwargs)
         else:
             raise TypeError(
-                "Currently only sklearn.cluster.KMeans is supported for clustering object. "
-                "Got {}".format(type(clusterobj)))
+                "Currently only sklearn.cluster.KMeans is supported for "
+                "clustering object. Got {}".format(type(clusterobj)))
 
-    if precomputed_nwgft is not None: #we don't need to do much if we have a precomputed nwgft
+    if precomputed_nwgft is not None:
+        # we don't need to do much if we have a precomputed nwgft
         C = precomputed_nwgft
     else:
-        #check that signal and graph are defined
+        # check that signal and graph are defined
         if s is None:
             raise RuntimeError(
-                    "If no precomputed_nwgft, then a signal s should be supplied.")
+                "If no precomputed_nwgft, then a signal s should be supplied.")
         if not isinstance(G, pygsp.graphs.Graph):
             if isinstance(G, graphtools.base.BaseGraph):
                 raise TypeError(
@@ -157,33 +165,38 @@ def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = 
                 raise TypeError(
                     "Input graph should be of type pygsp.graphs.Graph. "
                     "Got {}".format(type(G)))
-        #build kernel
+        # build kernel
 
         if use_diffop is False:
             if kernel and not(inspect.isfunction(kernel)):
-                    raise TypeError(
-                        "Input kernel should be a lambda function (accepting "
-                        "eigenvalues of the graph laplacian) or none. "
-                        "Got {}".format(type(kernel)))
-            if kernel is None:  
-                kernel = lambda x:  np.exp((-t*x)/G.lmax) #definition of the heat kernel
+                raise TypeError(
+                    "Input kernel should be a lambda function (accepting "
+                    "eigenvalues of the graph laplacian) or none. "
+                    "Got {}".format(type(kernel)))
+            if kernel is None:
+                # definition of the heat kernel
+                kernel = lambda x:  np.exp((-t * x) / G.lmax)
 
-            ke = kernel(G.e) #eval kernel over eigenvalues of G
-            ktrans = np.sqrt(G.N) * (G.U @ np.multiply(ke[:,None],G.U.T)) #vertex domain translation of the kernel. 
+            ke = kernel(G.e)  # eval kernel over eigenvalues of G
+            # vertex domain translation of the kernel.
+            ktrans = np.sqrt(G.N) * (G.U @ np.multiply(ke[:, None], G.U.T))
 
-            C = np.empty((G.N,G.N))
+            C = np.empty((G.N, G.N))
 
-            for i in range(0,G.N): #build frame matrix
-                kmod = np.matlib.repmat(ktrans[:,i], 1,G.N) # copy one translate Ntimes
-                kmod = np.reshape(kmod, (G.N, G.N)).T 
-                kmod = (G.U/G.U[:,0]) * kmod # modulate the copy at each frequency of G 
-                kmod = kmod / np.linalg.norm(kmod, axis = 0) #normalize it
-                C[:,i] = kmod.T@s # compute nwgft frame
+            for i in range(0, G.N):  # build frame matrix
+                # copy one translate Ntimes
+                kmod = np.matlib.repmat(ktrans[:, i], 1, G.N)
+                kmod = np.reshape(kmod, (G.N, G.N)).T
+                # modulate the copy at each frequency of G
+                kmod = (G.U / G.U[:, 0]) * kmod
+                kmod = kmod / np.linalg.norm(kmod, axis=0)  # normalize it
+                C[:, i] = kmod.T@s  # compute nwgft frame
         else:
-            window = sklp.normalize(np.linalg.matrix_power(G.diff_op.toarray(), t), 'l2', axis=0).T
-            C = np.multiply(window,s[:,None])
+            window = sklp.normalize(np.linalg.matrix_power(
+                G.diff_op.toarray(), t), 'l2', axis=0).T
+            C = np.multiply(window, s[:, None])
             C = G.gft(C)
 
-    labels = clusterobj.fit_predict(saturation_func(C,saturation))
+    labels = clusterobj.fit_predict(saturation_func(C, saturation))
 
     return C, labels, saturation_func
