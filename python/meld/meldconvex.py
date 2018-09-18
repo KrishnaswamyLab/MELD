@@ -6,7 +6,7 @@ import scipy.sparse as sparse
 import inspect
 from sklearn.cluster import KMeans
 from . import utils
-import sklearn.preprocessing as sklp
+from sklearn import preprocessing
 
 
 def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlaplacian', alpha=2):
@@ -180,7 +180,7 @@ def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = 
                 kmod = kmod / np.linalg.norm(kmod, axis = 0) #normalize it
                 C[:,i] = kmod.T@s # compute nwgft frame
         else:
-            window = sklp.normalize(np.linalg.matrix_power(G.diff_op.toarray(), t), 'l2', axis=0).T
+            window = preprocessing.normalize(np.linalg.matrix_power(G.diff_op.toarray(), t), 'l2', axis=0).T
             C = np.multiply(window,s[:,None])
             C = G.gft(C)
 
