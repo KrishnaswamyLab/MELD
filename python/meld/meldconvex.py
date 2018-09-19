@@ -130,12 +130,12 @@ def meld(X, G, beta, offset = 0, order = 1, solver='cheby', fi='regularizedlapla
 
 
 
-def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = True, kernel = None, clusterobj = None, nclusts = 5, precomputed_nwgft = None, **kwargs):
+def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = True, kernel = None, clusterobj = None, n_clusters = 5, precomputed_nwgft = None, **kwargs):
     saturation_func = lambda x,alpha: np.tanh(alpha * np.abs(x.T)) #TODO: extend to allow different saturation functions
     if not(isinstance(clusterobj, KMeans)):
         #todo: add support for other clustering algorithms
         if clusterobj is None:
-            clusterobj = KMeans(n_clusters = nclusts, **kwargs)
+            clusterobj = KMeans(n_clusters = n_clusters, **kwargs)
         else:
             raise TypeError(
                 "Currently only sklearn.cluster.KMeans is supported for clustering object. "
