@@ -9,6 +9,18 @@ from . import utils
 import sklearn.preprocessing as sklp
 
 
+def _check_pygsp_graph(G):
+    if not isinstance(G, pygsp.graphs.Graph):
+        if isinstance(G, graphtools.base.BaseGraph):
+            raise TypeError(
+                "Input graph should be of type pygsp.graphs.Graph. "
+                "When using graphtools, use the `use_pygsp=True` flag.")
+        else:
+            raise TypeError(
+                "Input graph should be of type pygsp.graphs.Graph. "
+                "Got {}".format(type(G)))
+
+
 def meld(X, G, beta, offset=0, order=1, solver='cheby',
          fi='regularizedlaplacian', alpha=2):
     """
@@ -76,15 +88,7 @@ def meld(X, G, beta, offset=0, order=1, solver='cheby',
         raise NotImplementedError(
             '{} filter is not currently implemented.'.format(fi))
 
-    if not isinstance(G, pygsp.graphs.Graph):
-        if isinstance(G, graphtools.base.BaseGraph):
-            raise TypeError(
-                "Input graph should be of type pygsp.graphs.Graph. "
-                "When using graphtools, use the `use_pygsp=True` flag.")
-        else:
-            raise TypeError(
-                "Input graph should be of type pygsp.graphs.Graph. "
-                "Got {}".format(type(G)))
+    _check_pygsp_graph(G)
 
     if X.shape[0] != G.N:
         if len(X.shape) > 1 and X.shape[1] == G.N:
@@ -156,15 +160,7 @@ def spectrogram_clustering(G, s=None,  t=10, saturation=0.5, use_diffop=True,
         if s is None:
             raise RuntimeError(
                 "If no precomputed_nwgft, then a signal s should be supplied.")
-        if not isinstance(G, pygsp.graphs.Graph):
-            if isinstance(G, graphtools.base.BaseGraph):
-                raise TypeError(
-                    "Input graph should be of type pygsp.graphs.Graph. "
-                    "When using graphtools, use the `use_pygsp=True` flag.")
-            else:
-                raise TypeError(
-                    "Input graph should be of type pygsp.graphs.Graph. "
-                    "Got {}".format(type(G)))
+        _check_pygsp_graph(G)
         # build kernel
 
         if use_diffop is False:
