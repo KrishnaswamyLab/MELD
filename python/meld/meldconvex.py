@@ -6,7 +6,12 @@ import scipy.sparse as sparse
 import inspect
 from sklearn.cluster import KMeans
 from . import utils
+<<<<<<< Updated upstream
 from sklearn import preprocessing
+=======
+import sklearn.preprocessing as sklp
+import warnings
+>>>>>>> Stashed changes
 
 
 def _check_pygsp_graph(G):
@@ -21,8 +26,8 @@ def _check_pygsp_graph(G):
                 "Got {}".format(type(G)))
 
 
-def meld(X, G, beta, offset=0, order=1, solver='cheby',
-         fi='regularizedlaplacian', alpha=2):
+def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M = 50, 
+            lap_type = 'combinatorial', fi='regularizedlaplacian', alpha=2):
     """
     Performs convex meld on the input signal.
     This function solves:
@@ -59,10 +64,13 @@ def meld(X, G, beta, offset=0, order=1, solver='cheby',
     order: int, optional, Default: 1
         Falloff and smoothness of the filter.
         High order leads to square-like filters.
-    Solver : string, optional, Default: 'cheby'
+    Solver : string, optional, Default: 'chebyshev'
         Method to solve convex problem.
         'cheby' uses a chebyshev polynomial approximation of the corresponding filter
-        'matrix' solves the convex problem exactly
+        'exact' uses the eigenvalue solution to the problem
+        'matrix' is deprecated and may not function appropriately
+    M : int, optional, Default: 50
+        Order of chebyshev approximation to use. 
     fi: string, optional, Default: 'regularizedlaplacian'
         Filter to use for (1).
         'regularizedlaplacian' is the exact solution of (1)
@@ -89,6 +97,14 @@ def meld(X, G, beta, offset=0, order=1, solver='cheby',
             '{} filter is not currently implemented.'.format(fi))
 
     _check_pygsp_graph(G)
+
+    if not isinstance(lap_type, str):
+        raise TypeError("Input lap_type should be a string")
+    fi = fi.lower()
+    if G.lap_type != lap_type:
+        warnings.warn("Changing lap_type may require recomputing the Laplacian")
+        Gbak = G
+        G.compute_laplacian(lap_type)
 
     if X.shape[0] != G.N:
         if len(X.shape) > 1 and X.shape[1] == G.N:
@@ -129,13 +145,16 @@ def meld(X, G, beta, offset=0, order=1, solver='cheby',
 
         G.estimate_lmax()
         filt = pygsp.filters.Filter(G, filterfunc)  # build filter
-        sol = filt.filter(X)  # apply filter
+        sol = filt.filter(X, method = solver, order = M)  # apply filter
         if fi == 'randomwalk':
             G.L = L_bak  # restore L
 
     sol = utils.convert_to_same_format(sol, X)
+    
+    Gout = G
+    G = Gbak
 
-    return sol
+    return sol, Gout
 
 
 <<<<<<< HEAD
@@ -229,4 +248,4 @@ def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = 
 
     labels = clusterobj.fit_predict(saturation_func(C, saturation))
 
-    return C, labels, saturation_func
+    return C, labels, saturation_func, clusterobj
