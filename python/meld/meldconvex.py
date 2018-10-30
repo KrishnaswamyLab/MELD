@@ -6,7 +6,7 @@ import scipy.sparse as sparse
 import inspect
 from sklearn.cluster import KMeans
 from . import utils
-import sklearn.preprocessing as sklp
+from sklearn import preprocessing
 
 
 def _check_pygsp_graph(G):
@@ -138,15 +138,25 @@ def meld(X, G, beta, offset=0, order=1, solver='cheby',
     return sol
 
 
+<<<<<<< HEAD
 def spectrogram_clustering(G, s=None,  t=10, saturation=0.5, use_diffop=True,
                            kernel=None, clusterobj=None, nclusts=5,
                            precomputed_nwgft=None, **kwargs):
     # TODO: extend to allow different saturation functions
     saturation_func = lambda x, alpha: np.tanh(alpha * np.abs(x.T))
+=======
+
+def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = True, kernel = None, clusterobj = None, n_clusters = 5, precomputed_nwgft = None, **kwargs):
+    saturation_func = lambda x,alpha: np.tanh(alpha * np.abs(x.T)) #TODO: extend to allow different saturation functions
+>>>>>>> c73247afe64fa2b6b6a6c2022cb0ddb7fa7fe80d
     if not(isinstance(clusterobj, KMeans)):
         # todo: add support for other clustering algorithms
         if clusterobj is None:
+<<<<<<< HEAD
             clusterobj = KMeans(n_clusters=nclusts, **kwargs)
+=======
+            clusterobj = KMeans(n_clusters = n_clusters, **kwargs)
+>>>>>>> c73247afe64fa2b6b6a6c2022cb0ddb7fa7fe80d
         else:
             raise TypeError(
                 "Currently only sklearn.cluster.KMeans is supported for "
@@ -165,6 +175,7 @@ def spectrogram_clustering(G, s=None,  t=10, saturation=0.5, use_diffop=True,
 
         if use_diffop is False:
             if kernel and not(inspect.isfunction(kernel)):
+<<<<<<< HEAD
                 raise TypeError(
                     "Input kernel should be a lambda function (accepting "
                     "eigenvalues of the graph laplacian) or none. "
@@ -191,6 +202,29 @@ def spectrogram_clustering(G, s=None,  t=10, saturation=0.5, use_diffop=True,
             window = sklp.normalize(np.linalg.matrix_power(
                 G.diff_op.toarray(), t), 'l2', axis=0).T
             C = np.multiply(window, s[:, None])
+=======
+                    raise TypeError(
+                        "Input kernel should be a lambda function (accepting "
+                        "eigenvalues of the graph laplacian) or none. "
+                        "Got {}".format(type(kernel)))
+            if kernel is None:
+                kernel = lambda x:  np.exp((-t*x)/G.lmax) #definition of the heat kernel
+
+            ke = kernel(G.e) #eval kernel over eigenvalues of G
+            ktrans = np.sqrt(G.N) * (G.U @ np.multiply(ke[:,None],G.U.T)) #vertex domain translation of the kernel.
+
+            C = np.empty((G.N,G.N))
+
+            for i in range(0,G.N): #build frame matrix
+                kmod = np.matlib.repmat(ktrans[:,i], 1,G.N) # copy one translate Ntimes
+                kmod = np.reshape(kmod, (G.N, G.N)).T
+                kmod = (G.U/G.U[:,0]) * kmod # modulate the copy at each frequency of G
+                kmod = kmod / np.linalg.norm(kmod, axis = 0) #normalize it
+                C[:,i] = kmod.T@s # compute nwgft frame
+        else:
+            window = preprocessing.normalize(np.linalg.matrix_power(G.diff_op.toarray(), t), 'l2', axis=0).T
+            C = np.multiply(window,s[:,None])
+>>>>>>> c73247afe64fa2b6b6a6c2022cb0ddb7fa7fe80d
             C = G.gft(C)
 
     labels = clusterobj.fit_predict(saturation_func(C, saturation))
