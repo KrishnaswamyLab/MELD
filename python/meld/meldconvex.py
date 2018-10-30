@@ -7,10 +7,10 @@ import inspect
 from sklearn.cluster import KMeans
 from . import utils
 from sklearn import preprocessing
-
+from scipy.linalg import expm
+from scipy.linalg import fractional_matrix_power as fmp
 import sklearn.preprocessing as sklp
 import warnings
-
 
 
 def _check_pygsp_graph(G):
@@ -25,8 +25,8 @@ def _check_pygsp_graph(G):
                 "Got {}".format(type(G)))
 
 
-def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M = 50, 
-            lap_type = 'combinatorial', fi='regularizedlaplacian', alpha=2):
+def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
+         lap_type='combinatorial', fi='regularizedlaplacian', alpha=2):
     """
     Performs convex meld on the input signal.
     This function solves:
@@ -100,9 +100,10 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M = 50,
     if not isinstance(lap_type, str):
         raise TypeError("Input lap_type should be a string")
     fi = fi.lower()
+    Gbak = G
     if G.lap_type != lap_type:
-        warnings.warn("Changing lap_type may require recomputing the Laplacian")
-        Gbak = G
+        warnings.warn(
+            "Changing lap_type may require recomputing the Laplacian")
         G.compute_laplacian(lap_type)
 
     if X.shape[0] != G.N:
@@ -134,35 +135,83 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M = 50,
     else:
         # use approximations
         if fi == 'regularizedlaplacian':  # fTLf
-            filterfunc = lambda x: 1 / (1 + (beta * x - offset)**order)
+            def filterfunc(x): return 1 / (1 + (beta * x - offset)**order)
 
         elif fi == 'randomwalk':  # p-step random walk
             L_bak = G.L
             # change the eigenbasis by normalizing by degree (stochasticity)
             G.L = (L_bak * D).T
-            filterfunc = lambda x: (alpha - x)**beta
+
+            def filterfunc(x): return (alpha - x)**beta
 
         G.estimate_lmax()
         filt = pygsp.filters.Filter(G, filterfunc)  # build filter
-        sol = filt.filter(X, method = solver, order = M)  # apply filter
+        sol = filt.filter(X, method=solver, order=M)  # apply filter
         if fi == 'randomwalk':
             G.L = L_bak  # restore L
 
     sol = utils.convert_to_same_format(sol, X)
-    
+
     Gout = G
     G = Gbak
 
     return sol, Gout
 
 
+def spectrogram_clustering(G, s=None, t=1, saturation=0.5, explicit_compute=False,
+                           lap_type='combinatorial', matrix_compute=False, kernel=None, clusterobj=None,
+                           n_clusters=5, run_clusters=True, precomputed_nwgft=None, **kwargs):
+    """spectrogram_clustering
 
-def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = True, kernel = None, clusterobj = None, n_clusters = 5, precomputed_nwgft = None, **kwargs):
-    saturation_func = lambda x,alpha: np.tanh(alpha * np.abs(x.T)) #TODO: extend to allow different saturation functions
+    Parameters
+    ----------
+    G : TYPE
+        Description
+    s : None, optional
+        Description
+    t : int, optional
+        Description
+    saturation : float, optional
+        Description
+    explicit_compute : bool, optional, default = False
+        Use the translation/modulation operation algorithmically (with for loops) described by Shuman et al. 
+    lap_type : str, optional, default = 'normalized'
+        Laplacian to use.  Options are 'normalized' and 'combinatorial'
+        Note that you will need to use a different t scale for normalized vs combinatorial.  
+    matrix_compute : bool, optional, default = True
+        Use Chebyshev filters(False) or matrices(True) to compute windows. 
+        Used when explicit_compute is false. This will affect your t scale.  
+    kernel : None, optional
+        Description
+    clusterobj : None, optional
+        Description
+    n_clusters : int, optional
+        Description
+    run_clusters : bool, optional, default = True
+        Run clustering algorithm
+    precomputed_nwgft : np.ndarray, optional, default = None
+        Precomputed spectrogram.  Equivalent to clustering with saturation.
+    **kwargs
+        Description
+
+    Returns
+    -------
+    TYPE
+        Description
+
+    Raises
+    ------
+    RuntimeError
+        Description
+    TypeError
+        Description
+    """
+    def saturation_func(x, alpha): return np.tanh(
+        alpha * np.abs(x.T))  # TODO: extend to allow different saturation functions
     if not(isinstance(clusterobj, KMeans)):
         # todo: add support for other clustering algorithms
         if clusterobj is None:
-            clusterobj = KMeans(n_clusters = n_clusters, **kwargs)
+            clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
         else:
             raise TypeError(
                 "Currently only sklearn.cluster.KMeans is supported for "
@@ -178,32 +227,67 @@ def spectrogram_clustering(G, s = None,  t = 10, saturation = 0.5, use_diffop = 
                 "If no precomputed_nwgft, then a signal s should be supplied.")
         _check_pygsp_graph(G)
         # build kernel
+        if not isinstance(lap_type, str):
+            raise TypeError("Input lap_type should be a string")
+        fi = fi.lower()
+        Gbak = G
+        if G.lap_type != lap_type:
+            warnings.warn(
+                "Changing lap_type may require recomputing the Laplacian")
+            G.compute_laplacian(lap_type)
 
-        if use_diffop is False:
+        # OK now we are going to compute some windows
+        if explicit_compute is True:  # In this case, we actually compute the 
+            #kernel function over eigenvectors and then modulate/translate around as necessary
             if kernel and not(inspect.isfunction(kernel)):
-                    raise TypeError(
-                        "Input kernel should be a lambda function (accepting "
-                        "eigenvalues of the graph laplacian) or none. "
-                        "Got {}".format(type(kernel)))
+                raise TypeError(
+                    "Input kernel should be a lambda function (accepting "
+                    "eigenvalues of the graph laplacian) or none. "
+                    "Got {}".format(type(kernel)))
             if kernel is None:
-                kernel = lambda x:  np.exp((-t*x)/G.lmax) #definition of the heat kernel
+                # definition of the heat kernel
+                def kernel(x): return np.exp((-t * x) / G.lmax)
 
-            ke = kernel(G.e) #eval kernel over eigenvalues of G
-            ktrans = np.sqrt(G.N) * (G.U @ np.multiply(ke[:,None],G.U.T)) #vertex domain translation of the kernel.
+            ke = kernel(G.e)  # eval kernel over eigenvalues of G
+            # vertex domain translation of the kernel.
+            ktrans = np.sqrt(G.N) * (G.U @ np.multiply(ke[:, None], G.U.T))
 
-            C = np.empty((G.N,G.N))
+            C = np.empty((G.N, G.N))
 
-            for i in range(0,G.N): #build frame matrix
-                kmod = np.matlib.repmat(ktrans[:,i], 1,G.N) # copy one translate Ntimes
+            for i in range(0, G.N):  # build frame matrix
+                # copy one translate Ntimes
+                kmod = np.matlib.repmat(ktrans[:, i], 1, G.N)
                 kmod = np.reshape(kmod, (G.N, G.N)).T
-                kmod = (G.U/G.U[:,0]) * kmod # modulate the copy at each frequency of G
-                kmod = kmod / np.linalg.norm(kmod, axis = 0) #normalize it
-                C[:,i] = kmod.T@s # compute nwgft frame
-        else:
-            window = preprocessing.normalize(np.linalg.matrix_power(G.diff_op.toarray(), t), 'l2', axis=0).T
-            C = np.multiply(window,s[:,None])
+                # modulate the copy at each frequency of G
+                kmod = (G.U / G.U[:, 0]) * kmod
+                kmod = kmod / np.linalg.norm(kmod, axis=0)  # normalize it
+                C[:, i] = kmod.T@s  # compute nwgft frame
+
+        else:  # in this case we are going to try to approximate things as quick as possible.  
+            #The easiest approximation is going to be the symmetric normalized one.
+            if mat:  # We have two options.  I'm not sure which one is best. The matrix is convenient.
+                if lap_type == 'normalized':  # We can do this with the diffop
+                    window = preprocessing.normalize(
+                        fmp(G.diff_op.toarray(), t), 'l2', axis=0).T
+                else:
+                    # assume the combinatorial laplacian.
+                    window = preprocessing.normalize(
+                        expm(-t * g.L), 'l2', axis=0).T
+            else:  # use the chebyshev filters
+                # Mind your t here.
+                h = pygsp.filters.Heat(G, tau=t, order=50)
+                window = preprocessing.normalize(
+                    h.filter(np.eye(g.N)), 'l2', axis=0).T
+
+            C = np.multiply(window, s[:, None])
             C = G.gft(C)
+    if run_clusters:
+        labels = clusterobj.fit_predict(saturation_func(C, saturation))
+    else:
+        labels = None
 
-    labels = clusterobj.fit_predict(saturation_func(C, saturation))
+    # im not clear on how my changing the laplacian around affects our original G. 
+    Gout = G
+    G = Gbak
 
-    return C, labels, saturation_func, clusterobj
+    return C, labels, saturation_func, clusterobj, Gout
