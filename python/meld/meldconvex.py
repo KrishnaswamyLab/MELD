@@ -99,7 +99,7 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
 
     if not isinstance(lap_type, str):
         raise TypeError("Input lap_type should be a string")
-    fi = fi.lower()
+    lap_type = lap_type.lower()
     Gbak = G
     if G.lap_type != lap_type:
         warnings.warn(
@@ -206,8 +206,10 @@ def spectrogram_clustering(G, s=None, t=1, saturation=0.5, explicit_compute=Fals
     TypeError
         Description
     """
+
     def saturation_func(x, alpha): return np.tanh(
         alpha * np.abs(x.T))  # TODO: extend to allow different saturation functions
+
     if not(isinstance(clusterobj, KMeans)):
         # todo: add support for other clustering algorithms
         if clusterobj is None:
@@ -229,7 +231,7 @@ def spectrogram_clustering(G, s=None, t=1, saturation=0.5, explicit_compute=Fals
         # build kernel
         if not isinstance(lap_type, str):
             raise TypeError("Input lap_type should be a string")
-        fi = fi.lower()
+        lap_type = lap_type.lower()
         Gbak = G
         if G.lap_type != lap_type:
             warnings.warn(
@@ -237,7 +239,7 @@ def spectrogram_clustering(G, s=None, t=1, saturation=0.5, explicit_compute=Fals
             G.compute_laplacian(lap_type)
 
         # OK now we are going to compute some windows
-        if explicit_compute is True:  # In this case, we actually compute the 
+        if explicit_compute:  # In this case, we actually compute the 
             #kernel function over eigenvectors and then modulate/translate around as necessary
             if kernel and not(inspect.isfunction(kernel)):
                 raise TypeError(
@@ -265,19 +267,19 @@ def spectrogram_clustering(G, s=None, t=1, saturation=0.5, explicit_compute=Fals
 
         else:  # in this case we are going to try to approximate things as quick as possible.  
             #The easiest approximation is going to be the symmetric normalized one.
-            if mat:  # We have two options.  I'm not sure which one is best. The matrix is convenient.
+            if matrix_compute:  # We have two options.  I'm not sure which one is best. The matrix is convenient.
                 if lap_type == 'normalized':  # We can do this with the diffop
                     window = preprocessing.normalize(
                         fmp(G.diff_op.toarray(), t), 'l2', axis=0).T
                 else:
                     # assume the combinatorial laplacian.
                     window = preprocessing.normalize(
-                        expm(-t * g.L), 'l2', axis=0).T
+                        expm(-t * G.L.toarray()), 'l2', axis=0).T
             else:  # use the chebyshev filters
                 # Mind your t here.
-                h = pygsp.filters.Heat(G, tau=t, order=50)
+                h = pygsp.filters.Heat(G, tau=t)
                 window = preprocessing.normalize(
-                    h.filter(np.eye(g.N)), 'l2', axis=0).T
+                    h.filter(np.eye(G.N), order=50), 'l2', axis=0).T
 
             C = np.multiply(window, s[:, None])
             C = G.gft(C)
