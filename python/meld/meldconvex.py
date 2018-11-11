@@ -4,6 +4,7 @@ import graphtools
 import graphtools.base
 import scipy.sparse as sparse
 import inspect
+from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
 from . import utils
 from sklearn import preprocessing
@@ -11,18 +12,19 @@ from scipy.linalg import expm
 from scipy.linalg import fractional_matrix_power as fmp
 import sklearn.preprocessing as sklp
 import warnings
+from functools import partial
 
 
 def _check_pygsp_graph(G):
-    if not isinstance(G, pygsp.graphs.Graph):
-        if isinstance(G, graphtools.base.BaseGraph):
+    if isinstance(G, graphtools.base.BaseGraph):
+        if not isinstance(G, pygsp.graphs.Graph):
             raise TypeError(
                 "Input graph should be of type pygsp.graphs.Graph. "
-                "When using graphtools, use the `use_pygsp=True` flag.")
-        else:
-            raise TypeError(
-                "Input graph should be of type pygsp.graphs.Graph. "
-                "Got {}".format(type(G)))
+                "With graphtools, use the `use_pygsp=True` flag.")
+    else:
+        raise TypeError(
+            "Input graph should be of graphtools.base.BaseGraph."
+            "With graphtools, use the `use_pygsp=True` flag.")
 
 
 def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
@@ -69,7 +71,7 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
         'exact' uses the eigenvalue solution to the problem
         'matrix' is deprecated and may not function appropriately
     M : int, optional, Default: 50
-        Order of chebyshev approximation to use. 
+        Order of chebyshev approximation to use.
     fi: string, optional, Default: 'regularizedlaplacian'
         Filter to use for (1).
         'regularizedlaplacian' is the exact solution of (1)
@@ -84,9 +86,6 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
     if not isinstance(solver, str):
         raise TypeError("Input method should be a string")
     solver = solver.lower()
-    if solver not in ['matrix', 'cheby']:
-        raise NotImplementedError(
-            '{} solver is not currently implemented.'.format(solver))
 
     if not isinstance(fi, str):
         raise TypeError("Input filter should be a string")
@@ -158,138 +157,251 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
     return sol, Gout
 
 
-def spectrogram_clustering(G, s=None, t=1, saturation=0.5, explicit_compute=False,
-                           lap_type='combinatorial', matrix_compute=False, kernel=None, clusterobj=None,
-                           n_clusters=5, run_clusters=True, precomputed_nwgft=None, **kwargs):
-    """spectrogram_clustering
-
-    Parameters
-    ----------
-    G : TYPE
-        Description
-    s : None, optional
-        Description
-    t : int, optional
-        Description
-    saturation : float, optional
-        Description
-    explicit_compute : bool, optional, default = False
-        Use the translation/modulation operation algorithmically (with for loops) described by Shuman et al. 
-    lap_type : str, optional, default = 'normalized'
-        Laplacian to use.  Options are 'normalized' and 'combinatorial'
-        Note that you will need to use a different t scale for normalized vs combinatorial.  
-    matrix_compute : bool, optional, default = True
-        Use Chebyshev filters(False) or matrices(True) to compute windows. 
-        Used when explicit_compute is false. This will affect your t scale.  
-    kernel : None, optional
-        Description
-    clusterobj : None, optional
-        Description
-    n_clusters : int, optional
-        Description
-    run_clusters : bool, optional, default = True
-        Run clustering algorithm
-    precomputed_nwgft : np.ndarray, optional, default = None
-        Precomputed spectrogram.  Equivalent to clustering with saturation.
-    **kwargs
-        Description
-
-    Returns
-    -------
-    TYPE
-        Description
-
-    Raises
-    ------
-    RuntimeError
-        Description
-    TypeError
-        Description
-    """
-
-    def saturation_func(x, alpha): return np.tanh(
-        alpha * np.abs(x.T))  # TODO: extend to allow different saturation functions
-
-    if not(isinstance(clusterobj, KMeans)):
-        # todo: add support for other clustering algorithms
-        if clusterobj is None:
-            clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
+class MELDCluster(BaseEstimator):
+    
+    def __init__(self, k=10, window_count=9, window_sizes=None, window=None,
+                 suppress=False, **kwargs):
+        """MELDCluster
+        
+        Parameters
+        ----------
+        k : int, optional
+            Description
+        window_count : int, optional
+            Number of windows to use if window_sizes = None
+        window_sizes : None, optional
+            ndarray of integer window sizes to supply to t
+        window : None, optional
+            Window matrix.  Not supported
+        suppress : bool, optional
+            Suppress warnings
+        **kwargs
+            Description
+        
+        Raises
+        ------
+        NotImplementedError
+            Window functions are not implemented
+        """
+        self.suppress = suppress
+        if window is not None:
+            raise NotImplementedError(
+                "User defined windows have not been implemented.")
         else:
-            raise TypeError(
-                "Currently only sklearn.cluster.KMeans is supported for "
-                "clustering object. Got {}".format(type(clusterobj)))
+            self._basewindow = None
+        if window_sizes is None:
+            self.window_sizes = np.power(2, np.arange(window_count))
+        else:
+            self.window_sizes = window_sizes
 
-    if precomputed_nwgft is not None:
-        # we don't need to do much if we have a precomputed nwgft
-        C = precomputed_nwgft
-    else:
-        # check that signal and graph are defined
-        if s is None:
-            raise RuntimeError(
-                "If no precomputed_nwgft, then a signal s should be supplied.")
-        _check_pygsp_graph(G)
-        # build kernel
-        if not isinstance(lap_type, str):
-            raise TypeError("Input lap_type should be a string")
-        lap_type = lap_type.lower()
-        Gbak = G
-        if G.lap_type != lap_type:
-            warnings.warn(
-                "Changing lap_type may require recomputing the Laplacian")
-            G.compute_laplacian(lap_type)
+        self.window_count = np.min(self.window_sizes.shape)
+        self._k = k
+        self._h = None
+        self._U = None
+        self._N = None
+        self._Cs = None
+        self._C = None
+        self._isfit = False
+        self.__sklearn_params = kwargs
 
-        # OK now we are going to compute some windows
-        if explicit_compute:  # In this case, we actually compute the 
-            #kernel function over eigenvectors and then modulate/translate around as necessary
-            if kernel and not(inspect.isfunction(kernel)):
+        self._clusterobj = KMeans(n_clusters=self._k, **kwargs)
+
+    def _activate(self, x, alpha=1):
+        """_activate: activate spectrograms for clustering
+        
+        Parameters
+        ----------
+        x : numeric
+            input signal
+        alpha : int, optional
+            amount of activation
+        
+        Returns
+        -------
+        activated signal
+        """
+        return np.tanh(alpha * np.abs(x))
+
+    def _compute_spectrogram(self, s, U, window):
+        """_compute_spectrogram: computes spectrograms for 
+        arbitrary window/signal/graph combinations
+
+        Parameters
+        ----------
+        s : input signal
+            Description
+        U : np.ndarray
+            eigenvectors
+        window : TYPE
+            window matrix
+        
+        Returns
+        -------
+        C
+            Normalized Spectrogram
+        
+        Raises
+        ------
+        TypeError
+            Description
+        """
+        if sparse.issparse(window):
+            warnings.warn("sparse windows not supported."
+                              "Casting to np.ndarray.")
+            window = window.toarray()
+
+        else:
+            if not isinstance(window, np.ndarray):
                 raise TypeError(
-                    "Input kernel should be a lambda function (accepting "
-                    "eigenvalues of the graph laplacian) or none. "
-                    "Got {}".format(type(kernel)))
-            if kernel is None:
-                # definition of the heat kernel
-                def kernel(x): return np.exp((-t * x) / G.lmax)
+                    "window must be a numpy.array or"
+                    "scipy.sparse.csr_matrix.")
+        C = np.multiply(window, s[:, None])
+        C = sklp.normalize(U.T@C, axis=0)
+        return C.T
 
-            ke = kernel(G.e)  # eval kernel over eigenvalues of G
-            # vertex domain translation of the kernel.
-            ktrans = np.sqrt(G.N) * (G.U @ np.multiply(ke[:, None], G.U.T))
+    def _compute_window(self, window, **kwargs):
+        """_compute_window
+        apply operation to window function
+        
+        Parameters
+        ----------
+        window : TYPE
+            Description
+        **kwargs
+            Description
+        
+        Returns
+        -------
+        TYPE
+            Description
+        
+        Raises
+        ------
+        TypeError
+            Description
+        """
+        if sparse.issparse(window):
+                warnings.warn("sparse windows not supported."
+                                  "Casting to np.ndarray.")
+                window = window.toarray()
 
-            C = np.empty((G.N, G.N))
+        else:
+            if not isinstance(window, np.ndarray):
+                raise TypeError(
+                    "window must be a numpy.array or"
+                    "scipy.sparse.csr_matrix.")
+            else:
+                window = np.linalg.matrix_power(window, kwargs['t'])
+                return sklp.normalize(window, 'l2', axis=0).T
 
-            for i in range(0, G.N):  # build frame matrix
-                # copy one translate Ntimes
-                kmod = np.matlib.repmat(ktrans[:, i], 1, G.N)
-                kmod = np.reshape(kmod, (G.N, G.N)).T
-                # modulate the copy at each frequency of G
-                kmod = (G.U / G.U[:, 0]) * kmod
-                kmod = kmod / np.linalg.norm(kmod, axis=0)  # normalize it
-                C[:, i] = kmod.T@s  # compute nwgft frame
+    def fit(self, G, refit=False):
+        _check_pygsp_graph(G)
+        if self._isfit and not refit:
+            warnings.warn("Estimator is already fit. "
+                          "Call MELDCluster.fit(G,refit=True)"
+                          " to refit")
+            return self
+        if self._basewindow is None:
+            if sparse.issparse(G.diff_op):
+                if not self.suppress:
+                    warnings.warn("sparse windows not supported."
+                                  "Casting to np.ndarray.")
+                self._basewindow = G.diff_op.toarray()
+            else:
+                self._basewindow = G.diff_op
+        self._h = np.zeros((G.N, G.N, self.window_count)
+                           )
 
-        else:  # in this case we are going to try to approximate things as quick as possible.  
-            #The easiest approximation is going to be the symmetric normalized one.
-            if matrix_compute:  # We have two options.  I'm not sure which one is best. The matrix is convenient.
-                if lap_type == 'normalized':  # We can do this with the diffop
-                    window = preprocessing.normalize(
-                        fmp(G.diff_op.toarray(), t), 'l2', axis=0).T
-                else:
-                    # assume the combinatorial laplacian.
-                    window = preprocessing.normalize(
-                        expm(-t * G.L.toarray()), 'l2', axis=0).T
-            else:  # use the chebyshev filters
-                # Mind your t here.
-                h = pygsp.filters.Heat(G, tau=t)
-                window = preprocessing.normalize(
-                    h.filter(np.eye(G.N), order=50), 'l2', axis=0).T
+        for i, t in enumerate(self.window_sizes):
+            self._h[:, :, i] = self._compute_window(
+                self._basewindow, t=t).astype(float)
+        self._U = G.U
+        self._N = G.N
+        self._isfit = True
+        return self
 
-            C = np.multiply(window, s[:, None])
-            C = G.gft(C)
-    if run_clusters:
-        labels = clusterobj.fit_predict(saturation_func(C, saturation))
-    else:
-        labels = None
+    def transform(self, s, center=True):
+        if not self.suppress:
+            if (self._C is not None or self._Cs is not None):
+                warnings.warn("Overwriting previous spectrogram. "
+                              "Suppress this warning with "
+                              "MELDCluster(suppress=True)")
+        if not self._isfit:
+            if not self.suppress:
+                warnings.warn("Estimator is not fit. "
+                              "Call MELDCluster.fit(). ")
+            return None
+        else:
+            if not isinstance(s, (list, tuple, np.ndarray)):
+                raise TypeError('Input signal s must be an array')
+            s = np.array(s)
+            if self._N not in s.shape:
+                raise ValueError('At least one axis of s must be'
+                                 ' of length N.')
+            else:
+                s = s - s.mean()
+                self._C = np.zeros((self._N, self._N))
+                self._Cs = np.zeros((
+                    self._N, self._N, self.window_count))
+                for t in range(self.window_count):
+                    temp = self._compute_spectrogram(
+                        s, self._U, self._h[:, :, t])
+                    self._Cs[:, :, t] = temp
+                    temp = self._activate(temp)
+                    temp = sklp.normalize(temp, 'l2', axis=1)
+                    
+                self._C = np.sum(np.tanh(np.abs(self._Cs)), axis=2)
+                """ This can be added later to support multiple signals
+                for i in range(ncols):
+                    for t in range(self.window_count):
+                        temp = self._compute_spectrogram(
+                            s[:, i], self._U, self._h[:, :, t])
+                        if self._activated:
+                            temp = self._activate(
+                                temp)
+                        if self._store_Cs:
+                            self._Cs[:, :, t, i] = temp
+                        else:
+                            self._C[:, :, i] += temp"""
 
-    # im not clear on how my changing the laplacian around affects our original G. 
-    Gout = G
-    G = Gbak
+        return self._C
 
-    return C, labels, saturation_func, clusterobj, Gout
+    def fit_transform(self, G, s, **kwargs):
+        self.fit(G, **kwargs)
+        return self.transform(s, **kwargs)
+
+    def predict(self, s=None, **kwargs):
+        if not self._isfit:
+            warnings.warn("Estimator is not fit. "
+                          "Call MELDCluster.fit(). ")
+            return None
+        if self._C is None and s is None:
+            warnings.warn("Estimator has no spectrogram to cluster. "
+                          "Call MELDCluster.transform(s). ")
+            return None
+        elif s is not None and self._C is not None:
+            self.transform(s, **kwargs)
+
+        return self._clusterobj.fit_predict(self._C)
+
+    def fit_predict(self, G, s, **kwargs):
+        self.fit_transform(G, s, **kwargs)
+        return self.predict(s)
+
+    @property
+    def k(self):
+        return self._k
+
+    @k.setter
+    def k(self, newk):
+        self._k = newk
+        self._clusterobj.set_params(n_clusters=self._k)
+
+    def set_kmeans_params(self, **kwargs):
+        k = kwargs.pop('k', False)
+        if k:
+            self._k = k
+        self._sklearn_params = kwargs
+        self._clusterobj.set_params(n_clusters=self._k, **kwargs)
+
+
