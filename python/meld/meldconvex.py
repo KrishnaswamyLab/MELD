@@ -154,18 +154,18 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
     Gout = G
     G = Gbak
 
-    return sol, Gout
+    return sol
 
 
 class MELDCluster(BaseEstimator):
-    
-    def __init__(self, k=10, window_count=9, window_sizes=None, window=None,
+
+    def __init__(self, n_clusters=10, window_count=9, window_sizes=None, window=None,
                  suppress=False, **kwargs):
         """MELDCluster
-        
+
         Parameters
         ----------
-        k : int, optional
+        n_clusters : int, optional
             Description
         window_count : int, optional
             Number of windows to use if window_sizes = None
@@ -177,11 +177,15 @@ class MELDCluster(BaseEstimator):
             Suppress warnings
         **kwargs
             Description
-        
+
         Raises
         ------
         NotImplementedError
             Window functions are not implemented
+
+        Examples
+        --------
+
         """
         self.suppress = suppress
         if window is not None:
@@ -195,7 +199,7 @@ class MELDCluster(BaseEstimator):
             self.window_sizes = window_sizes
 
         self.window_count = np.min(self.window_sizes.shape)
-        self._k = k
+        self._n_clusters = n_clusters
         self._h = None
         self._U = None
         self._N = None
@@ -203,48 +207,50 @@ class MELDCluster(BaseEstimator):
         self._C = None
         self._isfit = False
         self.__sklearn_params = kwargs
-
-        self._clusterobj = KMeans(n_clusters=self._k, **kwargs)
+        print(**kwargs)
+        self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
 
     def _activate(self, x, alpha=1):
         """_activate: activate spectrograms for clustering
-        
+
         Parameters
         ----------
         x : numeric
             input signal
         alpha : int, optional
             amount of activation
-        
+
         Returns
         -------
         activated signal
         """
         return np.tanh(alpha * np.abs(x))
 
-    def _compute_spectrogram(self, s, U, window):
-        """_compute_spectrogram: computes spectrograms for 
+    def _compute_spectrogram(self, s, window):
+        """_compute_spectrogram: computes spectrograms for
         arbitrary window/signal/graph combinations
 
         Parameters
         ----------
-        s : input signal
-            Description
+        s : no.ndarray
+            Input signal
         U : np.ndarray
             eigenvectors
         window : TYPE
             window matrix
-        
+
         Returns
         -------
         C
             Normalized Spectrogram
-        
+
         Raises
         ------
         TypeError
             Description
         """
+        if self._U is None:
+            raise ValueError('Estimator must be `fit` before running `_compute_spectrogram`.')
         if sparse.issparse(window):
             warnings.warn("sparse windows not supported."
                               "Casting to np.ndarray.")
@@ -256,25 +262,25 @@ class MELDCluster(BaseEstimator):
                     "window must be a numpy.array or"
                     "scipy.sparse.csr_matrix.")
         C = np.multiply(window, s[:, None])
-        C = sklp.normalize(U.T@C, axis=0)
+        C = sklp.normalize(self._U.T@C, axis=0)
         return C.T
 
     def _compute_window(self, window, **kwargs):
         """_compute_window
         apply operation to window function
-        
+
         Parameters
         ----------
         window : TYPE
             Description
         **kwargs
             Description
-        
+
         Returns
         -------
         TYPE
             Description
-        
+
         Raises
         ------
         TypeError
@@ -345,11 +351,11 @@ class MELDCluster(BaseEstimator):
                     self._N, self._N, self.window_count))
                 for t in range(self.window_count):
                     temp = self._compute_spectrogram(
-                        s, self._U, self._h[:, :, t])
+                        s, self._h[:, :, t])
                     self._Cs[:, :, t] = temp
                     temp = self._activate(temp)
                     temp = sklp.normalize(temp, 'l2', axis=1)
-                    
+
                 self._C = np.sum(np.tanh(np.abs(self._Cs)), axis=2)
                 """ This can be added later to support multiple signals
                 for i in range(ncols):
@@ -381,27 +387,25 @@ class MELDCluster(BaseEstimator):
             return None
         elif s is not None and self._C is not None:
             self.transform(s, **kwargs)
-
-        return self._clusterobj.fit_predict(self._C)
+        self.labels_ = self._clusterobj.fit_predict(self._C)
+        return self.labels_
 
     def fit_predict(self, G, s, **kwargs):
         self.fit_transform(G, s, **kwargs)
         return self.predict(s)
 
     @property
-    def k(self):
-        return self._k
+    def n_clusters(self):
+        return self._n_clusters
 
-    @k.setter
-    def k(self, newk):
-        self._k = newk
-        self._clusterobj.set_params(n_clusters=self._k)
+    @n_clusters.setter
+    def n_clusters(self, newk):
+        self._n_clusters = newk
+        self._clusterobj.set_params(n_clusters=self._n_clusters)
 
     def set_kmeans_params(self, **kwargs):
         k = kwargs.pop('k', False)
         if k:
-            self._k = k
+            self._n_clusters = k
         self._sklearn_params = kwargs
-        self._clusterobj.set_params(n_clusters=self._k, **kwargs)
-
-
+        self._clusterobj.set_params(n_clusters=self._n_clusters, **kwargs)
