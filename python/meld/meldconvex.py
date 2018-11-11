@@ -201,7 +201,11 @@ class MELDCluster(BaseEstimator):
         self.window_count = np.min(self.window_sizes.shape)
         self._n_clusters = n_clusters
         self._spectral_init = spectral_init
-        self._initial_labels = initial_labels
+        self._initial_labels = None
+        self._initial_centroids = None
+        self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
+
+        self.initial_labels = initial_labels
         self._h = None
         self._U = None
         self._N = None
@@ -211,8 +215,7 @@ class MELDCluster(BaseEstimator):
         self._SCbasis = None
         self._isfit = False
         self.__sklearn_params = kwargs
-        print(**kwargs)
-        self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
+        # print(**kwargs)
 
     def _activate(self, x, alpha=1):
         """_activate: activate spectrograms for clustering
@@ -339,16 +342,13 @@ class MELDCluster(BaseEstimator):
             _, self._U = np.linalg.eigh(L)
         else:
             self._U = G.U
+        self._N = G.N
 
         self.__compute_spectral_clusters(G, recompute=True)
-        if self._initial_labels is not None:
-            self._clusterobj.set_params(init=self._initial_labels)
-
-        self._N = G.N
         self._isfit = True
         return self
 
-    def transform(self, s, center=True):
+    def transform(self, s, center=True, **kwargs):
         if not self.suppress:
             if (self._C is not None or self._Cs is not None):
                 warnings.warn("Overwriting previous spectrogram. "
@@ -410,6 +410,9 @@ class MELDCluster(BaseEstimator):
             return None
         elif s is not None and self._C is not None:
             self.transform(s, **kwargs)
+
+        # make sure we are on the correct set of centroids.
+        self.set_kmeans_params(init=self.initial_centroids)
         self.labels_ = self._clusterobj.fit_predict(self._C)
         return self.labels_
 
@@ -435,13 +438,52 @@ class MELDCluster(BaseEstimator):
         self._clusterobj.set_params(n_clusters=self._n_clusters, **kwargs)
         self.__check_matching_k_initialization()
 
+    @property
+    def initial_labels(self):
+        return self._initial_labels
+
+    @initial_labels.setter
+    def initial_labels(self, initial_labels):
+        if not isinstance(initial_labels,
+                          (type(None), list, tuple, np.ndarray)):
+            raise TypeError('Initial labels must be an array')
+        elif initial_labels is not None:
+            initial_labels = np.array(initial_labels)
+        self._initial_labels = initial_labels
+
+    @property
+    def initial_centroids(self):
+        if self._C is not None:
+            if (isinstance(self._initial_centroids, np.ndarray) or
+                    self._initial_centroids in (None, 'k-means++', 'random')):
+                if self.initial_labels is not None:
+                    self._initial_centroids = self.__compute_centroids(
+                        self._initial_labels)
+                else:
+                    self._initial_centroids = self._initial_centroids
+        if self._initial_centroids is None:
+            self._initial_centroids = 'k-means++'
+        return self._initial_centroids
+
+    def __compute_centroids(self, labels):
+        ncols = len(np.unique(labels))
+        B = np.zeros([self._N, ncols])
+        B[(np.arange(self._N), labels.squeeze())] = 1
+        out = np.zeros((ncols, self._N))
+        for i in range(ncols):
+            out[i, :] = self._C[B.astype(bool)[:, i], :].mean(0)
+        return out
+
     def __compute_spectral_clusters(self, G=None, recompute=False):
         if self._spectral_init:
+
             if self._initial_labels is not None and not recompute:
-                return
+                return self
+
             elif self._initial_labels is not None and recompute:
                 warnings.warn("Overwriting current initial"
                               " labels with spectral clusters")
+
             if self._SCbasis is None or recompute:
                 self._SCbasis = None
                 if G is None:
@@ -471,20 +513,22 @@ class MELDCluster(BaseEstimator):
                         self._normL, self._n_clusters, which='SM')
 
                 self._SCbasis = sklp.normalize(self._SCbasis, axis=1)
-            self._initial_labels = self._clusterobj.fit_predict(self._SCbasis)
+            self.set_kmeans_params(init='k-means++')
+            self.initial_labels = self._clusterobj.fit_predict(self._SCbasis)
+        return self
 
     def __check_matching_k_initialization(self):
         if self._initial_labels is not None:
-            if np.unique(self._initial_labels).length != self._n_clusters:
+            if len(np.unique(self.initial_labels)) != self._n_clusters:
                 if self._spectral_init and self._isfit:
                     # this implies that we have already run spectral clustering
                     # we need to recompute it
                     warnings.warn('New _n_clusters does not match '
                                   ' spectral initialization. '
                                   'Reclustering spectral labels. ')
-                self._initial_labels = self._clusterobj.fit_predict(
+                self.initial_labels = self._clusterobj.fit_predict(
                     self._SCbasis)
             elif not self._spectral_init:
                 warnings.warn('New _n_clusters does not match initial labels '
                               'Discarding initial labels.')
-                self._initial_labels = None
+                self.initial_labels = None
