@@ -160,7 +160,7 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
 class MELDCluster(BaseEstimator):
 
     def __init__(self, n_clusters=10, window_count=9, window_sizes=None, window=None,
-                 suppress=False, **kwargs):
+                 spectral_init=False, initial_labels=None, suppress=False, **kwargs):
         """MELDCluster
 
         Parameters
@@ -200,11 +200,15 @@ class MELDCluster(BaseEstimator):
 
         self.window_count = np.min(self.window_sizes.shape)
         self._n_clusters = n_clusters
+        self._spectral_init = spectral_init
+        self._initial_labels = initial_labels
         self._h = None
         self._U = None
         self._N = None
         self._Cs = None
         self._C = None
+        self._normL = None
+        self._SCbasis = None
         self._isfit = False
         self.__sklearn_params = kwargs
         print(**kwargs)
@@ -250,10 +254,11 @@ class MELDCluster(BaseEstimator):
             Description
         """
         if self._U is None:
-            raise ValueError('Estimator must be `fit` before running `_compute_spectrogram`.')
+            raise ValueError(
+                'Estimator must be `fit` before running `_compute_spectrogram`.')
         if sparse.issparse(window):
             warnings.warn("sparse windows not supported."
-                              "Casting to np.ndarray.")
+                          "Casting to np.ndarray.")
             window = window.toarray()
 
         else:
@@ -287,9 +292,9 @@ class MELDCluster(BaseEstimator):
             Description
         """
         if sparse.issparse(window):
-                warnings.warn("sparse windows not supported."
-                                  "Casting to np.ndarray.")
-                window = window.toarray()
+            warnings.warn("sparse windows not supported."
+                          "Casting to np.ndarray.")
+            window = window.toarray()
 
         else:
             if not isinstance(window, np.ndarray):
@@ -300,7 +305,7 @@ class MELDCluster(BaseEstimator):
                 window = np.linalg.matrix_power(window, kwargs['t'])
                 return sklp.normalize(window, 'l2', axis=0).T
 
-    def fit(self, G, refit=False):
+    def fit(self, G, refit=False, **kwargs):
         _check_pygsp_graph(G)
         if self._isfit and not refit:
             warnings.warn("Estimator is already fit. "
@@ -321,7 +326,24 @@ class MELDCluster(BaseEstimator):
         for i, t in enumerate(self.window_sizes):
             self._h[:, :, i] = self._compute_window(
                 self._basewindow, t=t).astype(float)
-        self._U = G.U
+        # check the gft basis..
+        if G.lap_type == 'normalized':
+            warnings.warn('Combinatorial Laplacian is required for'
+                          ' spectrogram clustering.  Computing eigenvectors'
+                          ' of the combinatorial Laplacian.')
+            if sparse.issparse(G.W):
+                W = G.W.toarray()
+            else:
+                W = G.W
+            L = np.diag(G.dw) - W
+            _, self._U = np.linalg.eigh(L)
+        else:
+            self._U = G.U
+
+        self.__compute_spectral_clusters(G, recompute=True)
+        if self._initial_labels is not None:
+            self._clusterobj.set_params(init=self._initial_labels)
+
         self._N = G.N
         self._isfit = True
         return self
@@ -345,7 +367,8 @@ class MELDCluster(BaseEstimator):
                 raise ValueError('At least one axis of s must be'
                                  ' of length N.')
             else:
-                s = s - s.mean()
+                if center:
+                    s = s - s.mean()
                 self._C = np.zeros((self._N, self._N))
                 self._Cs = np.zeros((
                     self._N, self._N, self.window_count))
@@ -356,7 +379,7 @@ class MELDCluster(BaseEstimator):
                     temp = self._activate(temp)
                     temp = sklp.normalize(temp, 'l2', axis=1)
 
-                self._C = np.sum(np.tanh(np.abs(self._Cs)), axis=2)
+                    self._C += temp
                 """ This can be added later to support multiple signals
                 for i in range(ncols):
                     for t in range(self.window_count):
@@ -392,7 +415,7 @@ class MELDCluster(BaseEstimator):
 
     def fit_predict(self, G, s, **kwargs):
         self.fit_transform(G, s, **kwargs)
-        return self.predict(s)
+        return self.predict()
 
     @property
     def n_clusters(self):
@@ -402,6 +425,7 @@ class MELDCluster(BaseEstimator):
     def n_clusters(self, newk):
         self._n_clusters = newk
         self._clusterobj.set_params(n_clusters=self._n_clusters)
+        self.__check_matching_k_initialization()
 
     def set_kmeans_params(self, **kwargs):
         k = kwargs.pop('k', False)
@@ -409,3 +433,58 @@ class MELDCluster(BaseEstimator):
             self._n_clusters = k
         self._sklearn_params = kwargs
         self._clusterobj.set_params(n_clusters=self._n_clusters, **kwargs)
+        self.__check_matching_k_initialization()
+
+    def __compute_spectral_clusters(self, G=None, recompute=False):
+        if self._spectral_init:
+            if self._initial_labels is not None and not recompute:
+                return
+            elif self._initial_labels is not None and recompute:
+                warnings.warn("Overwriting current initial"
+                              " labels with spectral clusters")
+            if self._SCbasis is None or recompute:
+                self._SCbasis = None
+                if G is None:
+                    raise RuntimeError('To compute spectral clusters'
+                                       'a graph must be supplied.')
+
+                if sparse.issparse(G.L):
+                    L = G.L.toarray()
+                else:
+                    L = G.L
+
+                if G.lap_type == 'normalized':
+                    self._normL = L
+                    if hasattr(G, '_U'):  # precomputed eigs, easy
+                        self._SCbasis = G._U[:, :self._n_clusters]
+                else:
+                    # combinatorial laplacian, we need the normalized one
+                    sqrdeg = np.sqrt(G.dw)
+                    if any(sqrdeg == 0):
+                        raise ValueError("Graph has isolated vertices")
+                    else:
+                        sqrdeg = np.diag(sqrdeg ** -1)
+                        self._normL = sqrdeg@L@sqrdeg
+
+                if self._SCbasis is None:
+                    _, self._SCbasis = sparse.linalg.eigsh(
+                        self._normL, self._n_clusters, which='SM')
+
+                self._SCbasis = sklp.normalize(self._SCbasis, axis=1)
+            self._initial_labels = self._clusterobj.fit_predict(self._SCbasis)
+
+    def __check_matching_k_initialization(self):
+        if self._initial_labels is not None:
+            if np.unique(self._initial_labels).length != self._n_clusters:
+                if self._spectral_init and self._isfit:
+                    # this implies that we have already run spectral clustering
+                    # we need to recompute it
+                    warnings.warn('New _n_clusters does not match '
+                                  ' spectral initialization. '
+                                  'Reclustering spectral labels. ')
+                self._initial_labels = self._clusterobj.fit_predict(
+                    self._SCbasis)
+            elif not self._spectral_init:
+                warnings.warn('New _n_clusters does not match initial labels '
+                              'Discarding initial labels.')
+                self._initial_labels = None
