@@ -460,7 +460,7 @@ class MELDCluster(BaseEstimator):
                     self._initial_centroids = self.__compute_centroids(
                         self._initial_labels)
                 else:
-                    self._initial_centroids = self._initial_centroids
+                    self._initial_centroids = None
         if self._initial_centroids is None:
             self._initial_centroids = 'k-means++'
         return self._initial_centroids
@@ -519,16 +519,18 @@ class MELDCluster(BaseEstimator):
 
     def __check_matching_k_initialization(self):
         if self._initial_labels is not None:
-            if len(np.unique(self.initial_labels)) != self._n_clusters:
+            if self.initial_centroids.shape[0] != self._n_clusters:
                 if self._spectral_init and self._isfit:
                     # this implies that we have already run spectral clustering
                     # we need to recompute it
                     warnings.warn('New _n_clusters does not match '
                                   ' spectral initialization. '
                                   'Reclustering spectral labels. ')
-                self.initial_labels = self._clusterobj.fit_predict(
-                    self._SCbasis)
-            elif not self._spectral_init:
-                warnings.warn('New _n_clusters does not match initial labels '
-                              'Discarding initial labels.')
-                self.initial_labels = None
+                    self.initial_labels = self._clusterobj.fit_predict(
+                        self._SCbasis)
+                    self.set_kmeans_params(init=self.initial_centroids)
+                elif not self._spectral_init:
+                    warnings.warn('New _n_clusters does not match initial labels '
+                                  'Discarding initial labels.')
+                    self.initial_labels = None
+                    self.set_kmeans_params(init=self.initial_centroids)
