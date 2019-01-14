@@ -206,6 +206,7 @@ class MELDCluster(BaseEstimator):
         self._Cs = None
         self._C = None
         self._isfit = False
+        self._input_signal = None
         self.__sklearn_params = kwargs
         print(**kwargs)
         self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
@@ -226,13 +227,13 @@ class MELDCluster(BaseEstimator):
         """
         return np.tanh(alpha * np.abs(x))
 
-    def _compute_spectrogram(self, s, window):
+    def _compute_spectrogram(self, input_signal, window):
         """_compute_spectrogram: computes spectrograms for
         arbitrary window/signal/graph combinations
 
         Parameters
         ----------
-        s : no.ndarray
+        input_signal : np.ndarray
             Input signal
         U : np.ndarray
             eigenvectors
@@ -251,6 +252,8 @@ class MELDCluster(BaseEstimator):
         """
         if self._U is None:
             raise ValueError('Estimator must be `fit` before running `_compute_spectrogram`.')
+
+        #TODO: Why is this sparse if it's no supported?
         if sparse.issparse(window):
             warnings.warn("sparse windows not supported."
                               "Casting to np.ndarray.")
@@ -261,7 +264,9 @@ class MELDCluster(BaseEstimator):
                 raise TypeError(
                     "window must be a numpy.array or"
                     "scipy.sparse.csr_matrix.")
-        C = np.multiply(window, s[:, None])
+
+        self._input_signal = input_signal
+        C = np.multiply(window, self._input_signal[:, None])
         C = sklp.normalize(self._U.T@C, axis=0)
         return C.T
 
@@ -286,6 +291,7 @@ class MELDCluster(BaseEstimator):
         TypeError
             Description
         """
+        ## Would be nice if this didn't get called all the time
         if sparse.issparse(window):
                 warnings.warn("sparse windows not supported."
                                   "Casting to np.ndarray.")
@@ -301,6 +307,8 @@ class MELDCluster(BaseEstimator):
                 return sklp.normalize(window, 'l2', axis=0).T
 
     def fit(self, G, refit=False):
+        '''Sets eigenvectors and windows.'''
+
         _check_pygsp_graph(G)
         if self._isfit and not refit:
             warnings.warn("Estimator is already fit. "
@@ -326,7 +334,8 @@ class MELDCluster(BaseEstimator):
         self._isfit = True
         return self
 
-    def transform(self, s, center=True):
+    def transform(self, input_signal, center=True):
+        self._input_signal = input_signal
         if not self.suppress:
             if (self._C is not None or self._Cs is not None):
                 warnings.warn("Overwriting previous spectrogram. "
@@ -338,23 +347,24 @@ class MELDCluster(BaseEstimator):
                               "Call MELDCluster.fit(). ")
             return None
         else:
-            if not isinstance(s, (list, tuple, np.ndarray)):
-                raise TypeError('Input signal s must be an array')
-            s = np.array(s)
-            if self._N not in s.shape:
-                raise ValueError('At least one axis of s must be'
+            if not isinstance(input_signal, (list, tuple, np.ndarray)):
+                raise TypeError('`input_signal` must be an array')
+            input_signal = np.array(input_signal)
+            if self._N not in input_signal.shape:
+                raise ValueError('At least one axis of input_signal must be'
                                  ' of length N.')
             else:
-                s = s - s.mean()
+                input_signal = input_signal - input_signal.mean()
                 self._C = np.zeros((self._N, self._N))
                 self._Cs = np.zeros((
                     self._N, self._N, self.window_count))
                 for t in range(self.window_count):
                     temp = self._compute_spectrogram(
-                        s, self._h[:, :, t])
+                        input_signal, self._h[:, :, t])
+                    # There's maybe something wrong here
                     self._Cs[:, :, t] = temp
-                    temp = self._activate(temp)
-                    temp = sklp.normalize(temp, 'l2', axis=1)
+                    #temp = self._activate(temp)
+                    #temp = sklp.normalize(temp, 'l2', axis=1) # This work goes nowhere
 
                 self._C = np.sum(np.tanh(np.abs(self._Cs)), axis=2)
                 """ This can be added later to support multiple signals
@@ -372,11 +382,13 @@ class MELDCluster(BaseEstimator):
 
         return self._C
 
-    def fit_transform(self, G, s, **kwargs):
+    def fit_transform(self, G, input_signal, **kwargs):
         self.fit(G, **kwargs)
-        return self.transform(s, **kwargs)
+        return self.transform(input_signal, **kwargs)
 
-    def predict(self, s=None, **kwargs):
+    ## DB: I think that you should be able to call predict, i.e. KMeans
+    ##     without needed to rerun `transform()`.
+    def predict(self, input_signal=None, **kwargs):
         if not self._isfit:
             warnings.warn("Estimator is not fit. "
                           "Call MELDCluster.fit(). ")
@@ -385,14 +397,16 @@ class MELDCluster(BaseEstimator):
             warnings.warn("Estimator has no spectrogram to cluster. "
                           "Call MELDCluster.transform(s). ")
             return None
-        elif s is not None and self._C is not None:
-            self.transform(s, **kwargs)
+        # Checking if transform
+        elif input_signal is not None and self._C is None:
+            self.transform(input_signal, **kwargs)
         self.labels_ = self._clusterobj.fit_predict(self._C)
+        self.labels_ = utils.sort_clusters_by_meld_score(self.labels_, self._input_signal)
         return self.labels_
 
-    def fit_predict(self, G, s, **kwargs):
-        self.fit_transform(G, s, **kwargs)
-        return self.predict(s)
+    def fit_predict(self, G, input_signal, **kwargs):
+        self.fit_transform(G, input_signal, **kwargs)
+        return self.predict()
 
     @property
     def n_clusters(self):
