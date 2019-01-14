@@ -393,7 +393,7 @@ class MELDCluster(BaseEstimator):
             warnings.warn("Estimator is not fit. "
                           "Call MELDCluster.fit(). ")
             return None
-        if self._C is None and s is None:
+        if self._C is None and input_signal is None:
             warnings.warn("Estimator has no spectrogram to cluster. "
                           "Call MELDCluster.transform(s). ")
             return None
