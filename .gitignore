@@ -54,3 +54,6 @@ docs/_build/
 
 # Mac detritus
 .DS_Store
+
+# Jupyter detritus
+.ipynb_checkpoints
