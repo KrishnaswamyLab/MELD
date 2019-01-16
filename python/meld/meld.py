@@ -6,7 +6,7 @@ import scipy.sparse as sparse
 import inspect
 from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
-from . import utils
+from meld import utils
 from sklearn import preprocessing
 from scipy.linalg import expm
 from scipy.linalg import fractional_matrix_power as fmp
