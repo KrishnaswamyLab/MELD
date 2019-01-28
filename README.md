@@ -1,19 +1,12 @@
-=============
-MELD (Manifold Enhancement of Latent Dimensions)
-=============
+## MELD (Manifold Enhancement of Latent Dimensions)
 
-.. image:: https://img.shields.io/twitter/follow/KrishnaswamyLab.svg?style=social&label=Follow
-    :target: https://twitter.com/KrishnaswamyLab
-    :alt: Twitter
-.. image:: https://img.shields.io/github/stars/KrishnaswamyLab/scprep.svg?style=social&label=Stars
-    :target: https://github.com/KrishnaswamyLab/scprep/
-    :alt: GitHub stars
 
+[![Twitter](https://img.shields.io/twitter/follow/KrishnaswamyLab.svg?style=social&label=Follow)](https://twitter.com/KrishnaswamyLab)
+[![GitHub stars](https://img.shields.io/github/stars/KrishnaswamyLab/scprep.svg?style=social&label=Stars)](https://github.com/KrishnaswamyLab/MELD/)
 
 Quantifying the effect of experimental perturbations in scRNA-seq data.
 
-Installation
-------------
+## Installation
 
 ```
 pip install --user git+git://github.com/KrishnaswamyLab/MELD.git#subdirectory=python
