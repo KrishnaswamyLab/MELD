@@ -1,21 +1,36 @@
-# MELD (Manifold Enhancement of Latent Dimensions)
+=============
+MELD (Manifold Enhancement of Latent Dimensions)
+=============
+
+.. image:: https://img.shields.io/twitter/follow/KrishnaswamyLab.svg?style=social&label=Follow
+    :target: https://twitter.com/KrishnaswamyLab
+    :alt: Twitter
+.. image:: https://img.shields.io/github/stars/KrishnaswamyLab/scprep.svg?style=social&label=Stars
+    :target: https://github.com/KrishnaswamyLab/scprep/
+    :alt: GitHub stars
+
+
 Quantifying the effect of experimental perturbations in scRNA-seq data.
 
-## Installation
+Installation
+------------
 
 ```
 pip install --user git+git://github.com/KrishnaswamyLab/MELD.git#subdirectory=python
 ```
 
-## Requirements
+Requirements
+------------
 1. pygsp
 	Install via
 	`pip install pygsp`
-2. Graphtools
+2. graphtools
 	https://github.com/KrishnaswamyLab/graphtools
 	Used for importing data, building graphs, and getting gradient matrices.
 
-### Not required
+
+Optional
+--------
 
 1. pyunlocbox
 	https://pyunlocbox.readthedocs.io/en/stable/
@@ -23,7 +38,9 @@ pip install --user git+git://github.com/KrishnaswamyLab/MELD.git#subdirectory=py
 	Install via
 	`pip install pyunlocbox`
 
-## Usage
+
+Usage example
+-------------
 
 ```
 import meld
