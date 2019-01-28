@@ -12,8 +12,7 @@ Quantifying the effect of experimental perturbations in scRNA-seq data.
 pip install --user git+git://github.com/KrishnaswamyLab/MELD.git#subdirectory=python
 ```
 
-Requirements
-------------
+## Requirements
 1. pygsp
 	Install via
 	`pip install pygsp`
@@ -22,8 +21,7 @@ Requirements
 	Used for importing data, building graphs, and getting gradient matrices.
 
 
-Optional
---------
+## Optional
 
 1. pyunlocbox
 	https://pyunlocbox.readthedocs.io/en/stable/
@@ -32,8 +30,7 @@ Optional
 	`pip install pyunlocbox`
 
 
-Usage example
--------------
+## Usage example
 
 ```
 import meld
