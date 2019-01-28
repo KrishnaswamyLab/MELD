@@ -4,7 +4,7 @@
 [![Twitter](https://img.shields.io/twitter/follow/KrishnaswamyLab.svg?style=social&label=Follow)](https://twitter.com/KrishnaswamyLab)
 [![GitHub stars](https://img.shields.io/github/stars/KrishnaswamyLab/scprep.svg?style=social&label=Stars)](https://github.com/KrishnaswamyLab/MELD/)
 
-Quantifying the effect of experimental perturbations in scRNA-seq data.
+Quantifying the effect of experimental perturbations in scRNA-seq data. Note, this repository is under active development. Please check back on Monday Feb 4th 2019 for Version 0.1.
 
 ## Installation
 
