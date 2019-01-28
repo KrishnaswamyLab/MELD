@@ -1,3 +1,5 @@
+import numpy as np
+
 try:
     import pandas as pd
 except ImportError:
@@ -71,3 +73,14 @@ def convert_to_same_format(data, target_data, columns=None):
         data.var = target_columns
         data.obs = target_data.obs
     return data
+
+
+def get_sorting_map(labels, meldscore):
+    uniq_clusters = np.unique(labels)
+    means = np.array([np.mean(meldscore[labels == cl]) for cl in uniq_clusters])
+    new_clust_map = {curr_cl:i for i, curr_cl in enumerate(uniq_clusters[np.argsort(means)])}
+    return new_clust_map
+
+def sort_clusters_by_meld_score(clusters, meldscore):
+    new_clust_map = get_sorting_map(clusters, meldscore)
+    return np.array([new_clust_map[cl] for cl in clusters])

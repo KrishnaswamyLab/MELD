@@ -1,1 +1,1 @@
-from .meldconvex import meld, spectrogram_clustering
+from .meld import meld, MELDCluster
