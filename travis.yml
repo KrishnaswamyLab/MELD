@@ -1,0 +1,20 @@
+  language: python
+  python:
+    - "2.7"
+    - "3.5"
+    - "3.6"
+
+  sudo: required
+
+  cache: packages
+
+  install:
+    - cd python; python setup.py install; cd ..
+
+  script:
+    - cd python; pip install -U .[test,doc]
+    - python setup.py test
+    - cd doc; make html; cd ../..
+
+  after_success:
+- cd python; coveralls; cd ..
