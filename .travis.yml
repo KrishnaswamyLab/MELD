@@ -6,7 +6,9 @@ python:
 
 sudo: required
 
-cache: packages
+cache: 
+  - pip
+  - apt
 
 install:
   - python setup.py install
