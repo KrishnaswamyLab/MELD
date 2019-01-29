@@ -35,8 +35,9 @@ def make_batches(n_pts_per_cluster=5000):
 def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
-    labels_meld = meld.meld(labels, G, beta=0.5)
-    meld.MELDCluster().fit_transform(G, labels)
+    meld_op = meld.MELD()
+    labels_meld = meld_op.fit_transform(labels, G)
+    meld.VertexFrequencyCluster().fit_transform(G, labels)
 
 def test_meld():
     np.random.seed(42)
