@@ -42,6 +42,7 @@ setup(name='meld',
       install_requires=install_requires,
       extras_require={'test': test_requires,
                       'doc': doc_requires},
+      test_suite='nose2.collector.collector',
       long_description=readme,
       url='https://github.com/KrishnaswamyLab/MELD',
       download_url="https://github.com/KrishnaswamyLab/MELD/archive/v{}.tar.gz".format(
