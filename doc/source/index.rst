@@ -47,7 +47,7 @@ You can use `meld` with your single cell data as follows::
    import meld
    import graphtools
    G = graphtools.Graph(data, use_pygsp=True)
-   meld_score = meld.meld(label, gamma=0.5, g=G)
+   meld_score = meld.meld(label, G=G, beta=0.5)
 
 Help
 ====
