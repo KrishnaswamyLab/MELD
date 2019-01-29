@@ -25,7 +25,7 @@ Monday Feb 4th 2019 for Version 0.1.
 
 For now, check out our preprint on BioRxiv:
 
-.. raw:: <a href="https://www.biorxiv.org/content/10.1101/532846v1"><strong>Enhancing experimental signals in single-cell RNA-sequencing data using graph signal processing</strong><br />Daniel B Burkhardt, Jay S Stanley, Ana Luisa Perdigoto, Scott A Gigante, Kevan C Herold, Guy Wolf, Antonio Giraldez, David van Dijk, Smita Krishnaswamy. <em>BioRxiv.</em>doi:10.1101/532846</a>
+**Enhancing experimental signals in single-cell RNA-sequencing data using graph signal processing**. Daniel B Burkhardt, Jay S Stanley, Ana Luisa Perdigoto, Scott A Gigante, Kevan C Herold, Guy Wolf, Antonio Giraldez, David van Dijk, Smita Krishnaswamy. `BioRxiv <https://www.biorxiv.org/content/10.1101/532846v1>`__. doi:10.1101/532846.
 
 Installation
 ============
