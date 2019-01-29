@@ -3,16 +3,11 @@ import pygsp
 import graphtools
 import graphtools.base
 import scipy.sparse as sparse
-import inspect
 from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
 from meld import utils
-from sklearn import preprocessing
-from scipy.linalg import expm
-from scipy.linalg import fractional_matrix_power as fmp
 import sklearn.preprocessing as sklp
 import warnings
-from functools import partial
 
 
 def _check_pygsp_graph(G):
@@ -99,7 +94,6 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
     if not isinstance(lap_type, str):
         raise TypeError("Input lap_type should be a string")
     lap_type = lap_type.lower()
-    Gbak = G
     if G.lap_type != lap_type:
         warnings.warn(
             "Changing lap_type may require recomputing the Laplacian")
@@ -151,16 +145,13 @@ def meld(X, G, beta, offset=0, order=1, solver='chebyshev', M=50,
 
     sol = utils.convert_to_same_format(sol, X)
 
-    Gout = G
-    G = Gbak
-
     return sol
 
 
 class MELDCluster(BaseEstimator):
 
-    def __init__(self, n_clusters=10, window_count=9, window_sizes=None, window=None,
-                 suppress=False, **kwargs):
+    def __init__(self, n_clusters=10, window_count=9, window_sizes=None,
+                 window=None, suppress=False, **kwargs):
         """MELDCluster
 
         Parameters
@@ -251,12 +242,13 @@ class MELDCluster(BaseEstimator):
             Description
         """
         if self._U is None:
-            raise ValueError('Estimator must be `fit` before running `_compute_spectrogram`.')
+            raise ValueError(
+                'Estimator must be `fit` before running `_compute_spectrogram`.')
 
-        #TODO: Why is this sparse if it's no supported?
+        # TODO: Why is this sparse if it's no supported?
         if sparse.issparse(window):
             warnings.warn("sparse windows not supported."
-                              "Casting to np.ndarray.")
+                          "Casting to np.ndarray.")
             window = window.toarray()
 
         else:
@@ -291,11 +283,11 @@ class MELDCluster(BaseEstimator):
         TypeError
             Description
         """
-        ## Would be nice if this didn't get called all the time
+        # Would be nice if this didn't get called all the time
         if sparse.issparse(window):
-                warnings.warn("sparse windows not supported."
-                                  "Casting to np.ndarray.")
-                window = window.toarray()
+            warnings.warn("sparse windows not supported."
+                          "Casting to np.ndarray.")
+            window = window.toarray()
 
         else:
             if not isinstance(window, np.ndarray):
@@ -364,7 +356,8 @@ class MELDCluster(BaseEstimator):
                     # There's maybe something wrong here
                     self._Cs[:, :, t] = temp
                     #temp = self._activate(temp)
-                    #temp = sklp.normalize(temp, 'l2', axis=1) # This work goes nowhere
+                    # temp = sklp.normalize(temp, 'l2', axis=1) # This work
+                    # goes nowhere
 
                 self._C = np.sum(np.tanh(np.abs(self._Cs)), axis=2)
                 """ This can be added later to support multiple signals
@@ -386,8 +379,8 @@ class MELDCluster(BaseEstimator):
         self.fit(G, **kwargs)
         return self.transform(input_signal, **kwargs)
 
-    ## DB: I think that you should be able to call predict, i.e. KMeans
-    ##     without needed to rerun `transform()`.
+    # DB: I think that you should be able to call predict, i.e. KMeans
+    # without needed to rerun `transform()`.
     def predict(self, input_signal=None, **kwargs):
         if not self._isfit:
             warnings.warn("Estimator is not fit. "
@@ -401,7 +394,8 @@ class MELDCluster(BaseEstimator):
         elif input_signal is not None and self._C is None:
             self.transform(input_signal, **kwargs)
         self.labels_ = self._clusterobj.fit_predict(self._C)
-        self.labels_ = utils.sort_clusters_by_meld_score(self.labels_, self._input_signal)
+        self.labels_ = utils.sort_clusters_by_meld_score(
+            self.labels_, self._input_signal)
         return self.labels_
 
     def fit_predict(self, G, input_signal, **kwargs):
