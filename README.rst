@@ -7,6 +7,9 @@ MELD (Manifold Enhancement of Latent Dimensions)
 .. image:: https://api.travis-ci.com/KrishnaswamyLab/MELD.svg?branch=master
     :target: https://travis-ci.com/KrishnaswamyLab/MELD
     :alt: Travis CI Build
+.. image:: https://coveralls.io/repos/github/KrishnaswamyLab/MELD/badge.svg?branch=master
+    :target: https://coveralls.io/github/KrishnaswamyLab/MELD?branch=master
+    :alt: Coverage Status
 .. image:: https://zenodo.org/badge/DOI/10.1101/532846.svg
     :target: https://doi.org/10.1101/532846
     :alt: bioRxiv Preprint

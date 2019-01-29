@@ -12,6 +12,10 @@ meld
 
 .. raw:: html
 
+    <a href="https://coveralls.io/github/KrishnaswamyLab/MELD?branch=master"><img src="https://coveralls.io/repos/github/KrishnaswamyLab/MELD/badge.svg?branch=master" alt="Coverage Status"></img></a>
+
+.. raw:: html
+
     <a href="https://doi.org/10.1101/532846"><img src="https://zenodo.org/badge/DOI/10.1101/532846.svg" alt="bioRxiv Preprint"></a>
 
 .. raw:: html
