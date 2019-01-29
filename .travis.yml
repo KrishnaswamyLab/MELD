@@ -17,8 +17,7 @@ script:
 deploy:
   provider: pypi
   user: dburkhardt
-  password:
-    secure: jo4yvGKwA/k7f738LzuoERmymMGjWsmd2/EVdgVhVbVvMR1yBtPNND4zBSvWrlRNJZiHclr7Gz6Z0U9YX3bFNYDX5T2wPNMtaNAPWbIgnO9MJrPj545WuXof0swnobF2UiDkADWvQRz6l9uihpqD0eiuqP36VmNQajLLiDeVePPXay/qRICPb+Vsd6PrpiWJIqQtldiZHFgCAKaGjTy3PCvVn/iTvUhQ6k+AdNK2LzuKNRoHSeuNyT/dTdrM5N8W8J60PxwFvZw1WEZDugOIH6a2GEfLbEOq4t5axEViRvJATuZ8oxVSEK8P241PyRo/Hicb7IaI9VIb87Hnqehf5GFUKnBl+ftWxhk7Lllx81vmae1oA1jsd4/hf6jQXm2wrCvtNjxUnNB7rI3GLaxm5JeIEdVl22kmioeSsO+LxmsGoCVHSevz5ZlmoocF/irvquWaVWt2Ive7f1uupl/wRbloJKFyPqDNKqT3uKReRa+fVH1b+4yXqstwY/mnPf2QQt+zMXQXZBwh4purKO4zfgsXBnSN8o+gaWWSyXGFPA7HwI1+0XUAQ5GXlHjRvFJTr33D0kK5g/txhta/SfIHp4+fvNvsgAeNiqMfbNmIpM3tBTq3WQwFo7mX0cd9mT8Jon9LKmROc7oDtlNQZTCys+CIMz7MbSTElHrEamxl0VA=
+  password: ${PYPI_PASSWORD}
   distributions: sdist bdist_wheel
   skip_existing: true
   skip_cleanup: true
