@@ -1,0 +1,7 @@
+numpy>=1.14.0
+scipy>=1.1.0
+future
+graphtools>=0.1.8.1
+sphinx
+sphinxcontrib-napoleon
+autodocsumm
