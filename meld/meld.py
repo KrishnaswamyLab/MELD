@@ -355,9 +355,9 @@ class MELDCluster(BaseEstimator):
                         input_signal, self._h[:, :, t])
                     # There's maybe something wrong here
                     self._Cs[:, :, t] = temp
-                    #temp = self._activate(temp)
-                    # temp = sklp.normalize(temp, 'l2', axis=1) # This work
-                    # goes nowhere
+                    # temp = self._activate(temp)
+                    # temp = sklp.normalize(temp, 'l2', axis=1)
+                    # This work goes nowhere
 
                 self._C = np.sum(np.tanh(np.abs(self._Cs)), axis=2)
                 """ This can be added later to support multiple signals
