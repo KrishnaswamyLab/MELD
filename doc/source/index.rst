@@ -8,7 +8,7 @@ meld
 
 .. raw:: html
 
-    <a href="https://travis-ci.com/KrishnaswamyLab/meld"><img src="https://api.travis-ci.com/KrishnaswamyLab/meld.svg?branch=master" alt="Travis CI Build"></a>
+    <a href="https://travis-ci.com/KrishnaswamyLab/MELD"><img src="https://api.travis-ci.com/KrishnaswamyLab/MELD.svg?branch=master" alt="Travis CI Build"></a>
 
 .. raw:: html
 
