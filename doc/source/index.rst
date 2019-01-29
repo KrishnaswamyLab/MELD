@@ -16,7 +16,7 @@ meld
 
 .. raw:: html
 
-    <a href="https://meld.readthedocs.io/"><img src="https://img.shields.io/readthedocs/meld.svg" alt="Read the Docs"></img></a>
+    <a href="https://meld-docs.readthedocs.io/"><img src="https://img.shields.io/readthedocs/meld-docs.svg" alt="Read the Docs"></img></a>
 
 .. raw:: html
 
@@ -24,7 +24,7 @@ meld
 
 .. raw:: html
 
-    <a href="https://meld.readthedocs.io/"><img src="https://img.shields.io/readthedocs/meld.svg" alt="Read the Docs"></img></a>
+    <a href="https://meld-docs.readthedocs.io/"><img src="https://img.shields.io/readthedocs/meld-docs.svg" alt="Read the Docs"></img></a>
 
 .. raw:: html
 

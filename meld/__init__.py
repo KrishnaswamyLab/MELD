@@ -1,1 +1,1 @@
-from .meld import meld, MELDCluster
+from .meld import MELD, VertexFrequencyCluster

@@ -1,5 +1,5 @@
 import numpy as np
-import graphtools
+import graphtools as gt
 import meld
 # from make_batches import make_batches
 
@@ -34,6 +34,23 @@ def make_batches(n_pts_per_cluster=5000):
 
 def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
-    G = graphtools.Graph(data, sample_idx=labels, use_pygsp=True)
+    G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
     labels_meld = meld.meld(labels, G, beta=0.5)
     meld.MELDCluster().fit_transform(G, labels)
+
+def test_meld():
+    np.random.seed(42)
+    def norm(x):
+        x = x.copy()
+        x = x - np.min(x)
+        x = x / np.max(x)
+        return x
+
+    D = np.random.normal(0, 2, (1000,2))
+    X = np.random.binomial(1, norm(D[:,0]), 1000)
+    G = gt.Graph(D, knn=20, decay=10, use_pygsp=True)
+
+    meld_op = meld.MELD()
+    B = meld_op.fit_transform(X, G)
+
+    assert np.isclose(np.sum(B), 532.0001992193013)
