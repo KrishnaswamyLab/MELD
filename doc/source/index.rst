@@ -16,6 +16,10 @@ meld
 
 .. raw:: html
 
+    <a href="https://meld.readthedocs.io/"><img src="https://img.shields.io/readthedocs/meld.svg" alt="Read the Docs"></img></a>
+
+.. raw:: html
+
     <a href="https://doi.org/10.1101/532846"><img src="https://zenodo.org/badge/DOI/10.1101/532846.svg" alt="bioRxiv Preprint"></a>
 
 .. raw:: html

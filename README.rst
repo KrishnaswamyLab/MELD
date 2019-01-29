@@ -10,6 +10,9 @@ MELD (Manifold Enhancement of Latent Dimensions)
 .. image:: https://coveralls.io/repos/github/KrishnaswamyLab/MELD/badge.svg?branch=master
     :target: https://coveralls.io/github/KrishnaswamyLab/MELD?branch=master
     :alt: Coverage Status
+.. image:: https://img.shields.io/readthedocs/meld.svg
+    :target: https://meld.readthedocs.io/
+    :alt: Read the Docs
 .. image:: https://zenodo.org/badge/DOI/10.1101/532846.svg
     :target: https://doi.org/10.1101/532846
     :alt: bioRxiv Preprint
