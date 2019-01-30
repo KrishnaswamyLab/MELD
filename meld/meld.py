@@ -62,9 +62,7 @@ class MELD(BaseEstimator):
         The kind of Laplacian to calculate
     suppress : bool
         Suppress warnings
-
     """
-
 
     def __init__(self, beta=1, offset=0, order=2, solver='chebyshev', M=50,
              lap_type='combinatorial', suppress=False):
@@ -97,11 +95,12 @@ class MELD(BaseEstimator):
 
         if not self.lap_type in ('combinatorial', 'normalized'):
             raise TypeError("lap_type must be 'combinatorial'"
-                            " or 'normalized. Got: {}'".format(lap_type))
+                            " or 'normalized'. Got: '{}'".format(self.lap_type))
         if G.lap_type != self.lap_type:
             warnings.warn(
-                "Changing lap_type may require recomputing the Laplacian")
-            G.compute_laplacian(lap_type)
+                "Changing lap_type may require recomputing the Laplacian",
+                RuntimeWarning)
+            G.compute_laplacian(self.lap_type)
 
         # Generate MELD filter
         def filterfunc(x): return 1 / (1 + (self.beta * x - self.offset)**self.order)
@@ -126,13 +125,17 @@ class MELD(BaseEstimator):
             Smoothed version of X
 
         """
-
+        try:
+            _check_pygsp_graph(G)
+        except TypeError:
+            G = G.to_pygsp()
         # Checking shape of X and G match
         if X.shape[0] != G.N:
             if len(X.shape) > 1 and X.shape[1] == G.N:
-                print(
-                    "input matrix is column-wise rather than row-wise. "
-                    "transposing (output will be transposed)")
+                warnings.warn(
+                    "Input matrix is column-wise rather than row-wise. "
+                    "transposing (output will be transposed)",
+                    RuntimeWarning)
                 X = X.T
             else:
                 raise ValueError(
@@ -141,7 +144,7 @@ class MELD(BaseEstimator):
 
         X_nu = self.filt.filter(X, method=self.solver, order=self.M)  # apply filter
 
-        X_nu = utils.convert_to_same_format(X_nu, X)
+        #X_nu = utils.convert_to_same_format(X_nu, X)
 
         return X_nu
 
@@ -211,7 +214,7 @@ class VertexFrequencyCluster(BaseEstimator):
         self.spec_hist = None
         self.spectrogram = None
         self.isfit = False
-        self.input_signal = None
+        self.X = None
         self._sklearn_params = kwargs
         print(**kwargs)
         self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
@@ -232,13 +235,13 @@ class VertexFrequencyCluster(BaseEstimator):
         """
         return np.tanh(alpha * np.abs(x))
 
-    def _compute_spectrogram(self, input_signal, window):
+    def _compute_spectrogram(self, X, window):
         """_compute_spectrogram: computes spectrograms for
         arbitrary window/signal/graph combinations
 
         Parameters
         ----------
-        input_signal : np.ndarray
+        X : np.ndarray
             Input signal
         U : np.ndarray
             eigenvectors
@@ -255,24 +258,19 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
-        if self.eigenvectors is None:
-            raise ValueError(
-                'Estimator must be `fit` before running `_compute_spectrogram`.')
+        ##  I can't tell, but for now I think that this can never happen
+        ##  without the user deliberately making a mistake - DB
+        #if sparse.issparse(window):
+        #    window = window.toarray()
+#
+        #else:
+        #    if not isinstance(window, np.ndarray):
+        #        raise TypeError(
+        #            "window must be a numpy.array or"
+        #            "scipy.sparse.csr_matrix.")
 
-        # TODO: Why is this sparse if it's no supported?
-        if sparse.issparse(window):
-            warnings.warn("sparse windows not supported."
-                          "Casting to np.ndarray.")
-            window = window.toarray()
-
-        else:
-            if not isinstance(window, np.ndarray):
-                raise TypeError(
-                    "window must be a numpy.array or"
-                    "scipy.sparse.csr_matrix.")
-
-        self.input_signal = input_signal
-        C = np.multiply(window, self.input_signal[:, None])
+        self.X = X
+        C = np.multiply(window, self.X[:, None])
         C = sklp.normalize(self.eigenvectors.T@C, axis=0)
         return C.T
 
@@ -297,37 +295,33 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
-        # Would be nice if this didn't get called all the time
-        if sparse.issparse(window):
-            warnings.warn("sparse windows not supported."
-                          "Casting to np.ndarray.")
-            window = window.toarray()
-
-        else:
-            if not isinstance(window, np.ndarray):
-                raise TypeError(
-                    "window must be a numpy.array or"
-                    "scipy.sparse.csr_matrix.")
-            else:
-                window = np.linalg.matrix_power(window, kwargs['t'])
-                return sklp.normalize(window, 'l2', axis=0).T
+        #if sparse.issparse(window):]
+        #    window = window.toarray()
+#
+        #else:
+        #    if not isinstance(window, np.ndarray):
+        #        raise TypeError(
+        #            "window must be a numpy.array or"
+        #            "scipy.sparse.csr_matrix.")
+        window = np.linalg.matrix_power(window, kwargs['t'])
+        return sklp.normalize(window, 'l2', axis=0).T
 
     def fit(self, G, refit=False):
         '''Sets eigenvectors and windows.'''
 
         _check_pygsp_graph(G)
-        if self.isfit and not refit:
-            warnings.warn("Estimator is already fit. "
-                          "Call VertexFrequencyCluster.fit(G,refit=True)"
-                          " to refit")
-            return self
+        ## DB - I don't think we need this warning
+        #if self.isfit and not refit:
+        #    warnings.warn("Estimator is already fit. "
+        #                  "Call VertexFrequencyCluster.fit(G,refit=True)"
+        #                  " to refit")
+        #    return self
         if self._basewindow is None:
             if sparse.issparse(G.diff_op):
-                if not self.suppress:
-                    warnings.warn("sparse windows not supported."
-                                  "Casting to np.ndarray.")
+                # TODO: support for sparse diffusion operator
                 self._basewindow = G.diff_op.toarray()
             else:
+                # Can this ever happen?
                 self._basewindow = G.diff_op
         self.window = np.zeros((G.N, G.N, self.window_count))
 
@@ -339,80 +333,80 @@ class VertexFrequencyCluster(BaseEstimator):
         self.isfit = True
         return self
 
-    def transform(self, input_signal, center=True):
-        self.input_signal = input_signal
-        if not self.suppress:
-            if (self.spectrogram is not None or self.spec_hist is not None):
-                warnings.warn("Overwriting previous spectrogram. "
-                              "Suppress this warning with "
-                              "VertexFrequencyCluster(suppress=True)")
+    def transform(self, X, center=True):
+        self.X = X
+        # DB - removing warnings the user can do nothing about
+        #if not self.suppress:
+        #    if (self.spectrogram is not None or self.spec_hist is not None):
+        #        warnings.warn("Overwriting previous spectrogram. "
+        #                      "Suppress this warning with "
+        #                      "VertexFrequencyCluster(suppress=True)")
         if not self.isfit:
-            if not self.suppress:
-                warnings.warn("Estimator is not fit. "
-                              "Call VertexFrequencyCluster.fit(). ")
-            return None
+            raise ValueError(
+                'Estimator must be `fit` before running `transform`.')
+
         else:
-            if not isinstance(input_signal, (list, tuple, np.ndarray)):
-                raise TypeError('`input_signal` must be an array')
-            input_signal = np.array(input_signal)
-            if self.N not in input_signal.shape:
-                raise ValueError('At least one axis of input_signal must be'
+            if not isinstance(self.X, (list, tuple, np.ndarray)):
+                raise TypeError('`X` must be array-like')
+            self.X = np.array(self.X)
+            if self.N not in self.X.shape:
+                raise ValueError('At least one axis of X must be'
                                  ' of length N.')
-            else:
-                input_signal = input_signal - input_signal.mean()
-                self.spectrogram = np.zeros((self.N, self.N))
-                self.spec_hist = np.zeros((
-                    self.N, self.N, self.window_count))
+
+            self.X = self.X - self.X.mean()
+            self.spectrogram = np.zeros((self.N, self.N))
+            self.spec_hist = np.zeros((
+                self.N, self.N, self.window_count))
+            for t in range(self.window_count):
+                temp = self._compute_spectrogram(
+                    self.X, self.window[:, :, t])
+                # There's maybe something wrong here
+                self.spec_hist[:, :, t] = temp
+                # temp = self._activate(temp)
+                # temp = sklp.normalize(temp, 'l2', axis=1)
+                # This work goes nowhere
+
+            self.spectrogram = np.sum(np.tanh(np.abs(self.spec_hist)), axis=2)
+            """ This can be added later to support multiple signals
+            for i in range(ncols):
                 for t in range(self.window_count):
                     temp = self._compute_spectrogram(
-                        input_signal, self.window[:, :, t])
-                    # There's maybe something wrong here
-                    self.spec_hist[:, :, t] = temp
-                    # temp = self._activate(temp)
-                    # temp = sklp.normalize(temp, 'l2', axis=1)
-                    # This work goes nowhere
-
-                self.spectrogram = np.sum(np.tanh(np.abs(self.spec_hist)), axis=2)
-                """ This can be added later to support multiple signals
-                for i in range(ncols):
-                    for t in range(self.window_count):
-                        temp = self._compute_spectrogram(
-                            s[:, i], self.eigenvectors, self.window[:, :, t])
-                        if self._activated:
-                            temp = self._activate(
-                                temp)
-                        if self._store_spec_hist:
-                            self.spec_hist[:, :, t, i] = temp
-                        else:
-                            self.spectrogram[:, :, i] += temp"""
+                        s[:, i], self.eigenvectors, self.window[:, :, t])
+                    if self._activated:
+                        temp = self._activate(
+                            temp)
+                    if self._store_spec_hist:
+                        self.spec_hist[:, :, t, i] = temp
+                    else:
+                        self.spectrogram[:, :, i] += temp"""
 
         return self.spectrogram
 
-    def fit_transform(self, G, input_signal, **kwargs):
+    def fit_transform(self, G, X, **kwargs):
         self.fit(G, **kwargs)
-        return self.transform(input_signal, **kwargs)
+        return self.transform(X, **kwargs)
 
     # DB: I think that you should be able to call predict, i.e. KMeans
     # without needed to rerun `transform()`.
-    def predict(self, input_signal=None, **kwargs):
+    def predict(self, X=None, **kwargs):
         if not self.isfit:
             warnings.warn("Estimator is not fit. "
                           "Call VertexFrequencyCluster.fit(). ")
             return None
-        if self.spectrogram is None and input_signal is None:
+        if self.spectrogram is None and X is None:
             warnings.warn("Estimator has no spectrogram to cluster. "
                           "Call VertexFrequencyCluster.transform(s). ")
             return None
         # Checking if transform
-        elif input_signal is not None and self.spectrogram is None:
-            self.transform(input_signal, **kwargs)
+        elif X is not None and self.spectrogram is None:
+            self.transform(X, **kwargs)
         self.labels_ = self._clusterobj.fit_predict(self.spectrogram)
         self.labels_ = utils.sort_clusters_by_meld_score(
-            self.labels_, self.input_signal)
+            self.labels_, self.X)
         return self.labels_
 
-    def fit_predict(self, G, input_signal, **kwargs):
-        self.fit_transform(G, input_signal, **kwargs)
+    def fit_predict(self, G, X, **kwargs):
+        self.fit_transform(G, X, **kwargs)
         return self.predict()
 
     def set_kmeans_params(self, **kwargs):
