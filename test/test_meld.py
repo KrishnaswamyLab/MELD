@@ -96,12 +96,17 @@ def test_cluster():
     # VertexFrequencyCluster
     # Custom window sizes
     window_sizes = np.array([2, 4, 8, 24])
-    data, labels = make_batches(n_pts_per_cluster=250)
+    data, labels = make_batches(n_pts_per_cluster=100)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
     meld_op = meld.MELD()
     meld_op.fit_transform(labels, G)
-    meld.VertexFrequencyCluster(
-        window_sizes=window_sizes).fit_transform(G, labels)
+    vfc_op = meld.VertexFrequencyCluster(
+        window_sizes=window_sizes)
+    spectrogram = vfc_op.fit_transform(G, labels)
+    assert isinstance(vfc_op._basewindow, np.ndarray)
+    vfc_op.sparse = True
+    np.testing.assert_allclose(spectrogram, vfc_op.fit_transform(G, labels))
+    assert sparse.issparse(vfc_op._basewindow)
 
     # Transform before fit
     assert_raise_message(ValueError,
@@ -125,6 +130,3 @@ def test_cluster():
     # KMeans params
     vfc_op = meld.VertexFrequencyCluster()
     vfc_op.set_kmeans_params(k=2)
-
-    assert_raises(AssertionError, vfc_op._compute_window,
-                  window=sparse.csr_matrix([1]))

@@ -20,6 +20,9 @@ class VertexFrequencyCluster(BaseEstimator):
         Number of windows to use if window_sizes = None
     window_sizes : None, optional, default: None
         ndarray of integer window sizes to supply to t
+    sparse : bool, optional, default: False
+        Use sparse matrices. This is significantly slower,
+        but will use less memory
     suppress : bool, optional
         Suppress warnings
     **kwargs
@@ -36,9 +39,10 @@ class VertexFrequencyCluster(BaseEstimator):
     """
 
     def __init__(self, n_clusters=10, window_count=9, window_sizes=None,
-                 suppress=False, **kwargs):
+                 sparse=False, suppress=False, **kwargs):
 
         self.suppress = suppress
+        self.sparse = sparse
         self._basewindow = None
         if window_sizes is None:
             self.window_sizes = np.power(2, np.arange(window_count))
@@ -95,7 +99,6 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
-        assert not sparse.issparse(window)
         # I can't tell, but for now I think that this can never happen
         # without the user deliberately making a mistake - DB
         # if sparse.issparse(window):
@@ -108,11 +111,14 @@ class VertexFrequencyCluster(BaseEstimator):
         #            "scipy.sparse.csr_matrix.")
 
         self.X = X
-        C = np.multiply(window, self.X[:, None])
+        if sparse.issparse(window):
+            C = window.multiply(self.X[:, None])
+        else:
+            C = np.multiply(window, self.X[:, None])
         C = preprocessing.normalize(self.eigenvectors.T@C, axis=0)
         return C.T
 
-    def _compute_window(self, window, **kwargs):
+    def _compute_window(self, window, t=1):
         """_compute_window
         apply operation to window function
 
@@ -133,16 +139,10 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
-        assert not sparse.issparse(window)
-        # if sparse.issparse(window):]
-        #    window = window.toarray()
-        #
-        # else:
-        #    if not isinstance(window, np.ndarray):
-        #        raise TypeError(
-        #            "window must be a numpy.array or"
-        #            "scipy.sparse.csr_matrix.")
-        window = np.linalg.matrix_power(window, kwargs['t'])
+        if sparse.issparse(window):
+            window = window ** t
+        else:
+            window = np.linalg.matrix_power(window, t)
         return preprocessing.normalize(window, 'l2', axis=0).T
 
     def fit(self, G):
@@ -151,17 +151,17 @@ class VertexFrequencyCluster(BaseEstimator):
         G = utils._check_pygsp_graph(G)
 
         if self._basewindow is None:
-            if sparse.issparse(G.diff_op):
-                # TODO: support for sparse diffusion operator
-                self._basewindow = G.diff_op.toarray()
-            else:
-                # Can this ever happen?
-                self._basewindow = G.diff_op
-        self.window = np.zeros((G.N, G.N, self.window_count))
+            self._basewindow = G.diff_op
+        if not self.sparse and sparse.issparse(self._basewindow):
+            self._basewindow = self._basewindow.toarray()
+        elif self.sparse and not sparse.issparse(self._basewindow):
+            self._basewindow = sparse.csr_matrix(self._basewindow)
 
-        for i, t in enumerate(self.window_sizes):
-            self.window[:, :, i] = self._compute_window(
-                self._basewindow, t=t).astype(float)
+        self.windows = []
+
+        for t in self.window_sizes:
+            self.windows.append(self._compute_window(
+                self._basewindow, t=t).astype(float))
         # Compute Fourier basis. This may take some time.
         G.compute_fourier_basis()
         self.eigenvectors = G.U
@@ -190,19 +190,17 @@ class VertexFrequencyCluster(BaseEstimator):
                                  ' of length N.')
 
             self.X = self.X - self.X.mean()
-            self.spectrogram = np.zeros((self.N, self.N))
-            self.spec_hist = np.zeros((
-                self.N, self.N, self.window_count))
-            for t in range(self.window_count):
-                temp = self._compute_spectrogram(
-                    self.X, self.window[:, :, t])
+            self.spec_hist = []
+            for i in range(self.window_count):
+                spectrogram = self._compute_spectrogram(
+                    self.X, self.windows[i])
                 # There's maybe something wrong here
-                self.spec_hist[:, :, t] = temp
-                # temp = self._activate(temp)
+                spectrogram = self._activate(spectrogram)
+                self.spec_hist.append(spectrogram)
                 # temp = preprocessing.normalize(temp, 'l2', axis=1)
                 # This work goes nowhere
 
-            self.spectrogram = np.sum(np.tanh(np.abs(self.spec_hist)), axis=2)
+            self.spectrogram = sum(self.spec_hist)
             """ This can be added later to support multiple signals
             for i in range(ncols):
                 for t in range(self.window_count):
