@@ -23,22 +23,6 @@ def _check_pygsp_graph(G):
 
 class MELD(BaseEstimator):
     """ MELD operator for filtering signals over a graph.
-        This function solves:
-
-            (1) :math:`sol = argmin_{z} \frac{1}{2}\|x - z\|_2^2 + \beta \| \nabla x\|_2^2`
-
-            OR
-            regularizes (1) using \inner{X, randomwalk(L)*X}, the p-step random walk (math to come)
-
-        Note the nice following relationship for (1):
-
-            (2) :math:`x^T L x = \| \nabla x\|_2^2`
-
-        Also note that the solution to (1) may be phrased as the lowpass filter:
-
-            (3) :math:`sol = h(L)x` with :math:`h(\lambda) := \frac{1}{1+\beta\lambda}`
-
-        We use (3) by default as it is faster in the case of few input signals.
 
     Parameters
     ----------
@@ -216,7 +200,6 @@ class VertexFrequencyCluster(BaseEstimator):
         self.isfit = False
         self.X = None
         self._sklearn_params = kwargs
-        print(**kwargs)
         self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
 
     def _activate(self, x, alpha=1):
@@ -295,6 +278,7 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
+        assert not sparse.issparse(window)
         #if sparse.issparse(window):]
         #    window = window.toarray()
 #
@@ -306,16 +290,11 @@ class VertexFrequencyCluster(BaseEstimator):
         window = np.linalg.matrix_power(window, kwargs['t'])
         return sklp.normalize(window, 'l2', axis=0).T
 
-    def fit(self, G, refit=False):
+    def fit(self, G):
         '''Sets eigenvectors and windows.'''
 
         _check_pygsp_graph(G)
-        ## DB - I don't think we need this warning
-        #if self.isfit and not refit:
-        #    warnings.warn("Estimator is already fit. "
-        #                  "Call VertexFrequencyCluster.fit(G,refit=True)"
-        #                  " to refit")
-        #    return self
+
         if self._basewindow is None:
             if sparse.issparse(G.diff_op):
                 # TODO: support for sparse diffusion operator
@@ -328,6 +307,8 @@ class VertexFrequencyCluster(BaseEstimator):
         for i, t in enumerate(self.window_sizes):
             self.window[:, :, i] = self._compute_window(
                 self._basewindow, t=t).astype(float)
+        # Compute Fourier basis. This may take some time.
+        G.compute_fourier_basis()
         self.eigenvectors = G.U
         self.N = G.N
         self.isfit = True
