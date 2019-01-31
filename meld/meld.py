@@ -6,7 +6,7 @@ import scipy.sparse as sparse
 from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
 from meld import utils
-import sklearn.preprocessing as sklp
+from sklearn import preprocessing
 import warnings
 
 
@@ -254,7 +254,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
         self.X = X
         C = np.multiply(window, self.X[:, None])
-        C = sklp.normalize(self.eigenvectors.T@C, axis=0)
+        C = preprocessing.normalize(self.eigenvectors.T@C, axis=0)
         return C.T
 
     def _compute_window(self, window, **kwargs):
@@ -288,7 +288,7 @@ class VertexFrequencyCluster(BaseEstimator):
         #            "window must be a numpy.array or"
         #            "scipy.sparse.csr_matrix.")
         window = np.linalg.matrix_power(window, kwargs['t'])
-        return sklp.normalize(window, 'l2', axis=0).T
+        return preprocessing.normalize(window, 'l2', axis=0).T
 
     def fit(self, G):
         '''Sets eigenvectors and windows.'''
@@ -344,7 +344,7 @@ class VertexFrequencyCluster(BaseEstimator):
                 # There's maybe something wrong here
                 self.spec_hist[:, :, t] = temp
                 # temp = self._activate(temp)
-                # temp = sklp.normalize(temp, 'l2', axis=1)
+                # temp = preprocessing.normalize(temp, 'l2', axis=1)
                 # This work goes nowhere
 
             self.spectrogram = np.sum(np.tanh(np.abs(self.spec_hist)), axis=2)
