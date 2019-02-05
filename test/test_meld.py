@@ -14,8 +14,8 @@ def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
     meld_op = meld.MELD()
-    meld_op.fit_transform(labels, G)
-    meld.VertexFrequencyCluster().fit_transform(G=G, X=labels)
+    EES = meld_op.fit_transform(labels, G)
+    meld.VertexFrequencyCluster().fit_transform(G=G, RES=labels, EES=EES)
 
 
 def test_check_pygsp_graph():
@@ -43,16 +43,16 @@ def test_meld():
         return x
 
     D = np.random.normal(0, 2, (1000, 2))
-    X = np.random.binomial(1, norm(D[:, 0]), 1000)
+    RES = np.random.binomial(1, norm(D[:, 0]), 1000)
     G = gt.Graph(D, knn=20, decay=10, use_pygsp=True)
 
     meld_op = meld.MELD()
-    B = meld_op.fit_transform(X, G)
+    B = meld_op.fit_transform(RES, G)
 
     assert np.isclose(np.sum(B), 532.0001992193013)
 
     meld_op = meld.MELD()
-    B = meld_op.fit_transform(X, gt.Graph(
+    B = meld_op.fit_transform(RES, gt.Graph(
         D, knn=20, decay=10, use_pygsp=False))
     assert np.isclose(np.sum(B), 532.0001992193013)
 
@@ -65,23 +65,23 @@ def test_meld():
         meld.MELD(lap_type=lap_type).fit,
         G=G)
 
-    # X transpose
+    # RES transpose
     assert_warns_message(
         RuntimeWarning,
         "Input matrix is column-wise rather than row-wise. "
         "transposing (output will be transposed)",
         meld_op.fit_transform,
-        X=np.ones([2, G.N]),
+        RES=np.ones([2, G.N]),
         G=G)
 
-    # X wrong shape
-    X = np.ones([2, G.N + 100])
+    # RES wrong shape
+    RES = np.ones([2, G.N + 100])
     assert_raise_message(
         ValueError,
         "Input data ({}) and input graph ({}) "
-        "are not of the same size".format(X.shape, G.N),
+        "are not of the same size".format(RES.shape, G.N),
         meld_op.fit_transform,
-        X=X,
+        RES=RES,
         G=G)
 
     # lap reconversion warning
@@ -91,7 +91,6 @@ def test_meld():
         meld_op.fit,
         G=gt.Graph(D, knn=20, decay=10, use_pygsp=True, lap_type='normalized'))
 
-
 def test_cluster():
     # VertexFrequencyCluster
     # Custom window sizes
@@ -99,33 +98,52 @@ def test_cluster():
     data, labels = make_batches(n_pts_per_cluster=100)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
     meld_op = meld.MELD()
-    meld_op.fit_transform(labels, G)
+    EES = meld_op.fit_transform(G=G, RES=labels)
     vfc_op = meld.VertexFrequencyCluster(
         window_sizes=window_sizes)
-    spectrogram = vfc_op.fit_transform(G, labels)
+
+    vfc_op.fit(G)
+    # predict before transform
+    assert_raise_message(ValueError,
+                         "Estimator is not transformed. "
+                         "Call VertexFrequencyCluster.transform().",
+                         vfc_op.predict, RES=labels)
+    spectrogram = vfc_op.fit_transform(G, RES=labels, EES=EES)
     assert isinstance(vfc_op._basewindow, np.ndarray)
     vfc_op.sparse = True
-    np.testing.assert_allclose(spectrogram, vfc_op.fit_transform(G, labels))
+    np.testing.assert_allclose(spectrogram, vfc_op.fit_transform(G, RES=labels, EES=EES))
     assert sparse.issparse(vfc_op._basewindow)
 
     # Transform before fit
     assert_raise_message(ValueError,
                          'Estimator must be `fit` before running `transform`.',
-                         meld.VertexFrequencyCluster().transform, X=labels)
+                         meld.VertexFrequencyCluster().transform, RES=labels, EES=EES)
 
-    # X not array-like
-    assert_raise_message(TypeError,
-                         '`X` must be array-like',
-                         meld.VertexFrequencyCluster().fit_transform, G=G, X='hello world')
-
-    # X and n mismatch
+    # predict before fit
     assert_raise_message(ValueError,
-                         'At least one axis of X must be'
-                         ' of length N.',
-                         meld.VertexFrequencyCluster().fit_transform, G=G, X=np.ones(7))
+                         "Estimator is not fit. Call VertexFrequencyCluster.fit().",
+                         meld.VertexFrequencyCluster().predict, RES=labels, EES=EES)
+    # predict before transform
+    assert_raise_message(ValueError,
+                         "Estimator is not transformed. "
+                         "Call VertexFrequencyCluster.transform().",
+                         meld.VertexFrequencyCluster().predict, RES=labels, EES=EES)
+
+    # RES not array-like
+    assert_raise_message(TypeError,
+                         '`RES` and `EES` must be array-like',
+                         meld.VertexFrequencyCluster().fit_transform, G=G,
+                         RES='hello world', EES=EES)
+
+    # RES and n mismatch
+    assert_raise_message(ValueError,
+                         'At least one axis of `RES` and `EES` must be'
+                         ' of length `N`.',
+                         meld.VertexFrequencyCluster().fit_transform, G=G,
+                         RES=np.ones(7), EES=EES)
 
     # Predict
-    meld.VertexFrequencyCluster().fit_predict(G=G, X=labels)
+    meld.VertexFrequencyCluster().fit_predict(G=G, RES=labels, EES=EES)
 
     # KMeans params
     vfc_op = meld.VertexFrequencyCluster()

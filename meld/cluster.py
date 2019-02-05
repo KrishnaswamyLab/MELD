@@ -1,8 +1,9 @@
 import numpy as np
+import pandas as pd
 from scipy import sparse
 from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
-from sklearn import preprocessing
+from sklearn import preprocessing, decomposition
 import warnings
 
 from . import utils
@@ -57,7 +58,8 @@ class VertexFrequencyCluster(BaseEstimator):
         self.spec_hist = None
         self.spectrogram = None
         self.isfit = False
-        self.X = None
+        self.ees = None
+        self.res = None
         self._sklearn_params = kwargs
         self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
 
@@ -77,12 +79,12 @@ class VertexFrequencyCluster(BaseEstimator):
         """
         return np.tanh(alpha * np.abs(x))
 
-    def _compute_spectrogram(self, X, window):
+    def _compute_spectrogram(self, RES, window):
         """Computes spectrograms for arbitrary window/signal/graph combinations
 
         Parameters
         ----------
-        X : np.ndarray
+        RES : np.ndarray
             Input signal
         U : np.ndarray
             eigenvectors
@@ -110,11 +112,11 @@ class VertexFrequencyCluster(BaseEstimator):
         #            "window must be a numpy.array or"
         #            "scipy.sparse.csr_matrix.")
 
-        self.X = X
+        self.RES = RES
         if sparse.issparse(window):
-            C = window.multiply(self.X[:, None])
+            C = window.multiply(self.RES[:, None])
         else:
-            C = np.multiply(window, self.X[:, None])
+            C = np.multiply(window, self.RES[:, None])
         C = preprocessing.normalize(self.eigenvectors.T@C, axis=0)
         return C.T
 
@@ -145,6 +147,17 @@ class VertexFrequencyCluster(BaseEstimator):
             window = np.linalg.matrix_power(window, t)
         return preprocessing.normalize(window, 'l2', axis=0).T
 
+    def _concat_EES_to_spectrogram(self, weight):
+        '''Concatenates the EES to the spectrogram for clustering'''
+
+        data = decomposition.PCA(25).fit_transform(self.spectrogram)
+
+        range_dim = np.max(np.max(data, axis=0) - np.min(data, axis=0))
+        range_meld = np.max(self.EES) - np.min(self.EES)
+        scale = (range_dim / range_meld) * weight
+        data_nu = np.c_[data,(self.EES * scale)]
+        return data_nu
+
     def fit(self, G):
         '''Sets eigenvectors and windows.'''
 
@@ -169,31 +182,30 @@ class VertexFrequencyCluster(BaseEstimator):
         self.isfit = True
         return self
 
-    def transform(self, X, center=True):
-        self.X = X
-        # DB - removing warnings the user can do nothing about
-        # if not self.suppress:
-        #    if (self.spectrogram is not None or self.spec_hist is not None):
-        #        warnings.warn("Overwriting previous spectrogram. "
-        #                      "Suppress this warning with "
-        #                      "VertexFrequencyCluster(suppress=True)")
+    def transform(self, RES, EES, weight=1, center=True):
+        '''Calculates the spectrogram of the graph using the RES'''
+        self.RES = RES
+        self.EES = EES
         if not self.isfit:
             raise ValueError(
                 'Estimator must be `fit` before running `transform`.')
 
         else:
-            if not isinstance(self.X, (list, tuple, np.ndarray)):
-                raise TypeError('`X` must be array-like')
-            self.X = np.array(self.X)
-            if self.N not in self.X.shape:
-                raise ValueError('At least one axis of X must be'
-                                 ' of length N.')
+            if ((not isinstance(self.RES, (list, tuple, np.ndarray, pd.Series))) or
+                (not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)))):
+                raise TypeError('`RES` and `EES` must be array-like')
+            self.RES = np.array(self.RES)
+            self.EES = np.array(self.EES)
+            if ((self.N not in self.RES.shape) or
+               (self.N not in self.EES.shape)):
+                raise ValueError('At least one axis of `RES` and `EES` must be'
+                                 ' of length `N`.')
 
-            self.X = self.X - self.X.mean()
+            self.RES = self.RES - self.RES.mean()
             self.spec_hist = []
             for i in range(self.window_count):
                 spectrogram = self._compute_spectrogram(
-                    self.X, self.windows[i])
+                    self.RES, self.windows[i])
                 # There's maybe something wrong here
                 spectrogram = self._activate(spectrogram)
                 self.spec_hist.append(spectrogram)
@@ -214,33 +226,34 @@ class VertexFrequencyCluster(BaseEstimator):
                     else:
                         self.spectrogram[:, :, i] += temp"""
 
+        # Appending the EES to the spectrogram
+        # TODO: is this a bad idea?
+        self.spectrogram = self._concat_EES_to_spectrogram(weight)
+
+
         return self.spectrogram
 
-    def fit_transform(self, G, X, **kwargs):
+    def fit_transform(self, G, RES, EES, **kwargs):
         self.fit(G, **kwargs)
-        return self.transform(X, **kwargs)
+        return self.transform(RES, EES, **kwargs)
 
-    # DB: I think that you should be able to call predict, i.e. KMeans
-    # without needed to rerun `transform()`.
-    def predict(self, X=None, **kwargs):
+    def predict(self, RES=None, **kwargs):
+        '''Runs KMeans on the spectrogram.'''
         if not self.isfit:
-            warnings.warn("Estimator is not fit. "
-                          "Call VertexFrequencyCluster.fit(). ")
-            return None
-        if self.spectrogram is None and X is None:
-            warnings.warn("Estimator has no spectrogram to cluster. "
-                          "Call VertexFrequencyCluster.transform(s). ")
-            return None
-        # Checking if transform
-        elif X is not None and self.spectrogram is None:
-            self.transform(X, **kwargs)
+            raise ValueError("Estimator is not fit. "
+                          "Call VertexFrequencyCluster.fit().")
+        if self.spectrogram is None:
+
+            raise ValueError("Estimator is not transformed. "
+                          "Call VertexFrequencyCluster.transform().")
+
         self.labels_ = self._clusterobj.fit_predict(self.spectrogram)
         self.labels_ = utils.sort_clusters_by_meld_score(
-            self.labels_, self.X)
+            self.labels_, self.RES)
         return self.labels_
 
-    def fit_predict(self, G, X, **kwargs):
-        self.fit_transform(G, X, **kwargs)
+    def fit_predict(self, G, RES, **kwargs):
+        self.fit_transform(G, RES, **kwargs)
         return self.predict()
 
     def set_kmeans_params(self, **kwargs):
