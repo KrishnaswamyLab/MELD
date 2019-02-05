@@ -50,8 +50,6 @@ Quick Start
 
 You can use `meld` with your single cell data as follows::
 
-::
-
    import meld
    import graphtools
    G = graphtools.Graph(data, use_pygsp=True)
