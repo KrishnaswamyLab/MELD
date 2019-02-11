@@ -117,10 +117,11 @@ class VertexFrequencyCluster(BaseEstimator):
 
         self.RES = RES
         if sparse.issparse(window):
-            C = window.multiply(self.RES[:, None])
+            # the next computation becomes dense - better to make dense now
+            C = window.multiply(self.RES[:, None]).toarray()
         else:
             C = np.multiply(window, self.RES[:, None])
-        C = preprocessing.normalize(self.eigenvectors.T@C, axis=0)
+        C = preprocessing.normalize(self.eigenvectors.T @ C, axis=0)
         return C.T
 
     def _compute_window(self, window, t=1):
@@ -205,17 +206,17 @@ class VertexFrequencyCluster(BaseEstimator):
                                  ' of length `N`.')
 
             self.RES = self.RES - self.RES.mean()
-            self.spec_hist = []
-            for i in range(self.window_count):
+            self.spectrogram = np.zeros((self.windows[0].shape[1],
+                                         self.eigenvectors.shape[1]))
+            for window in self.windows:
                 spectrogram = self._compute_spectrogram(
-                    self.RES, self.windows[i])
+                    self.RES, window)
                 # There's maybe something wrong here
                 spectrogram = self._activate(spectrogram)
-                self.spec_hist.append(spectrogram)
+                self.spectrogram += spectrogram
                 # temp = preprocessing.normalize(temp, 'l2', axis=1)
                 # This work goes nowhere
 
-            self.spectrogram = sum(self.spec_hist)
             """ This can be added later to support multiple signals
             for i in range(ncols):
                 for t in range(self.window_count):
