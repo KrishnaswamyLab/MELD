@@ -26,8 +26,7 @@ MELD (Manifold Enhancement of Latent Dimensions)
 
 Quantifying the effect of experimental perturbations in scRNA-seq data.
 
-Note, this repository is under active development. Please check back on
-Monday Feb 4th 2019 for Version 0.1.
+Note, this repository is under active development. Please check back soon for a tutorial!
 
 For now, check out our preprint on BioRxiv:
 
