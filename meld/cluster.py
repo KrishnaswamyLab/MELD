@@ -26,8 +26,6 @@ class VertexFrequencyCluster(BaseEstimator):
         but will use less memory
     suppress : bool, optional
         Suppress warnings
-    random_state : int or None, optional (default: None)
-        Random seed for clustering
     **kwargs
         Description
 
@@ -42,7 +40,7 @@ class VertexFrequencyCluster(BaseEstimator):
     """
 
     def __init__(self, n_clusters=10, window_count=9, window_sizes=None,
-                 sparse=False, suppress=False, random_state=None, **kwargs):
+                 sparse=False, suppress=False, **kwargs):
 
         self.suppress = suppress
         self.sparse = sparse
@@ -63,8 +61,7 @@ class VertexFrequencyCluster(BaseEstimator):
         self.ees = None
         self.res = None
         self._sklearn_params = kwargs
-        self._clusterobj = KMeans(n_clusters=n_clusters,
-                                  random_state=random_state, **kwargs)
+        self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
 
     def _activate(self, x, alpha=1):
         """Activate spectrograms for clustering
@@ -158,7 +155,7 @@ class VertexFrequencyCluster(BaseEstimator):
         range_dim = np.max(np.max(data, axis=0) - np.min(data, axis=0))
         range_meld = np.max(self.EES) - np.min(self.EES)
         scale = (range_dim / range_meld) * weight
-        data_nu = np.c_[data, (self.EES * scale)]
+        data_nu = np.c_[data,(self.EES * scale)]
         return data_nu
 
     def fit(self, G):
@@ -195,12 +192,12 @@ class VertexFrequencyCluster(BaseEstimator):
 
         else:
             if ((not isinstance(self.RES, (list, tuple, np.ndarray, pd.Series))) or
-                    (not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)))):
+                (not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)))):
                 raise TypeError('`RES` and `EES` must be array-like')
             self.RES = np.array(self.RES)
             self.EES = np.array(self.EES)
             if ((self.N not in self.RES.shape) or
-                    (self.N not in self.EES.shape)):
+               (self.N not in self.EES.shape)):
                 raise ValueError('At least one axis of `RES` and `EES` must be'
                                  ' of length `N`.')
 
@@ -233,6 +230,7 @@ class VertexFrequencyCluster(BaseEstimator):
         # TODO: is this a bad idea?
         self.spectrogram = self._concat_EES_to_spectrogram(weight)
 
+
         return self.spectrogram
 
     def fit_transform(self, G, RES, EES, **kwargs):
@@ -243,11 +241,11 @@ class VertexFrequencyCluster(BaseEstimator):
         '''Runs KMeans on the spectrogram.'''
         if not self.isfit:
             raise ValueError("Estimator is not fit. "
-                             "Call VertexFrequencyCluster.fit().")
+                          "Call VertexFrequencyCluster.fit().")
         if self.spectrogram is None:
 
             raise ValueError("Estimator is not transformed. "
-                             "Call VertexFrequencyCluster.transform().")
+                          "Call VertexFrequencyCluster.transform().")
 
         self.labels_ = self._clusterobj.fit_predict(self.spectrogram)
         self.labels_ = utils.sort_clusters_by_meld_score(
