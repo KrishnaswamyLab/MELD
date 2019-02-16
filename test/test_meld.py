@@ -1,6 +1,7 @@
 import numpy as np
 import graphtools as gt
 import meld
+from meld import version
 import pygsp
 import unittest
 
@@ -168,16 +169,14 @@ class TestCluster(unittest.TestCase):
     def test_res_wrong_length(self):
         # RES and n mismatch
         assert_raise_message(ValueError,
-                             'At least one axis of `RES` and `EES` must be'
-                             ' of length `N`.',
+                             'At least one axis of `RES` must be of length `N`.',
                              meld.VertexFrequencyCluster().fit_transform,
                              G=self.G, RES=np.ones(7), EES=self.EES)
 
     def test_ees_wrong_length(self):
         # EES and n mismatch
         assert_raise_message(ValueError,
-                             'At least one axis of `EES` must be'
-                             ' of length `N`.',
+                             'At least one axis of `EES` must be of length `N`.',
                              meld.VertexFrequencyCluster().fit_transform,
                              G=self.G, RES=self.labels, EES=np.ones(7))
 

@@ -104,17 +104,6 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
-        # I can't tell, but for now I think that this can never happen
-        # without the user deliberately making a mistake - DB
-        # if sparse.issparse(window):
-        #    window = window.toarray()
-        #
-        # else:
-        #    if not isinstance(window, np.ndarray):
-        #        raise TypeError(
-        #            "window must be a numpy.array or"
-        #            "scipy.sparse.csr_matrix.")
-
         self.RES = RES
         if sparse.issparse(window):
             # the next computation becomes dense - better to make dense now
@@ -220,8 +209,7 @@ class VertexFrequencyCluster(BaseEstimator):
                 # There's maybe something wrong here
                 spectrogram = self._activate(spectrogram)
                 self.spectrogram += spectrogram
-                # temp = preprocessing.normalize(temp, 'l2', axis=1)
-                # This work goes nowhere
+
 
             """ This can be added later to support multiple signals
             for i in range(ncols):
