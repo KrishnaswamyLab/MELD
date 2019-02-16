@@ -26,9 +26,10 @@ MELD (Manifold Enhancement of Latent Dimensions)
 
 Quantifying the effect of experimental perturbations in scRNA-seq data.
 
-Note, this repository is under active development. Please check back soon for a tutorial!
+Quick Start:
+* [Read our guided tutorial in Python](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/Wagner2018_Chordin_Cas9_Mutagenesis.ipynb)
 
-For now, check out our preprint on BioRxiv:
+For a more in depth explanation of MELD, read our manuscript on BioRxiv:
 
 **Enhancing experimental signals in single-cell RNA-sequencing data using graph signal processing**. Daniel B Burkhardt, Jay S Stanley, Ana Luisa Perdigoto, Scott A Gigante, Kevan C Herold, Guy Wolf, Antonio Giraldez, David van Dijk, Smita Krishnaswamy. `BioRxiv <https://www.biorxiv.org/content/10.1101/532846v1>`__. doi:10.1101/532846.
 

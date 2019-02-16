@@ -36,5 +36,5 @@ def test_utils():
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
     EES = meld.MELD().fit_transform(labels, G)
 
-    clusters = meld.VertexFrequencyCluster().fit_predict(G=G, X=labels)
+    clusters = meld.VertexFrequencyCluster().fit_predict(G=G, RES=labels, EES=EES)
     meld.utils.sort_clusters_by_meld_score(clusters, EES)

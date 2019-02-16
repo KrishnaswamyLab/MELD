@@ -44,6 +44,7 @@ class MELD(BaseEstimator):
         self.M = M
         self.lap_type = lap_type
         self.filt = None
+        self.EES = None
 
     def fit(self, G):
         """Builds the MELD filter over a graph `G`.
@@ -73,12 +74,12 @@ class MELD(BaseEstimator):
         G.estimate_lmax()
         self.filt = pygsp.filters.Filter(G, filterfunc)  # build filter
 
-    def transform(self, X, G):
-        """Filters a signal `X` over graph `G`.
+    def transform(self, RES, G):
+        """Filters a signal `RES` over graph `G`.
 
         Parameters
         ----------
-        X : ndarray [n, p]
+        RES : ndarray [n, p]
             2 dimensional input signal array to filter.
 
         G : graphtools.Graph object
@@ -86,35 +87,35 @@ class MELD(BaseEstimator):
 
         Returns
         -------
-        X_nu : ndarray [n, p]
-            Smoothed version of X
+        RES_nu : ndarray [n, p]
+            Smoothed version of RES
 
         """
         G = utils._check_pygsp_graph(G)
-        # Checking shape of X and G match
-        if X.shape[0] != G.N:
-            if len(X.shape) > 1 and X.shape[1] == G.N:
+        # Checking shape of RES and G match
+        if RES.shape[0] != G.N:
+            if len(RES.shape) > 1 and RES.shape[1] == G.N:
                 warnings.warn(
                     "Input matrix is column-wise rather than row-wise. "
                     "transposing (output will be transposed)",
                     RuntimeWarning)
-                X = X.T
+                RES = RES.T
             else:
                 raise ValueError(
                     "Input data ({}) and input graph ({}) "
-                    "are not of the same size".format(X.shape, G.N))
+                    "are not of the same size".format(RES.shape, G.N))
 
-        X_nu = self.filt.filter(X, method=self.solver,
+        RES_nu = self.filt.filter(RES, method=self.solver,
                                 order=self.M)  # apply filter
 
-        return X_nu
+        return RES_nu
 
-    def fit_transform(self, X, G):
-        """Builds the MELD filter over a graph `G` and filters a signal `X`.
+    def fit_transform(self, RES, G):
+        """Builds the MELD filter over a graph `G` and filters a signal `RES`.
 
         Parameters
         ----------
-        X : ndarray [n, p]
+        RES : ndarray [n, p]
             2 dimensional input signal array to filter.
 
         G : graphtools.Graph object
@@ -122,11 +123,11 @@ class MELD(BaseEstimator):
 
         Returns
         -------
-        X_nu : ndarray [n, p]
-            Smoothed version of X
+        EES : ndarray [n, p]
+            Filtered version of RES
 
         """
 
         self.fit(G)
-        self.X_nu = self.transform(X, G)
-        return self.X_nu
+        self.EES = self.transform(RES, G)
+        return self.EES
