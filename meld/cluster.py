@@ -26,6 +26,8 @@ class VertexFrequencyCluster(BaseEstimator):
         but will use less memory
     suppress : bool, optional
         Suppress warnings
+    random_state : int or None, optional (default: None)
+        Random seed for clustering
     **kwargs
         Description
 
@@ -40,7 +42,7 @@ class VertexFrequencyCluster(BaseEstimator):
     """
 
     def __init__(self, n_clusters=10, window_count=9, window_sizes=None,
-                 sparse=False, suppress=False, **kwargs):
+                 sparse=False, suppress=False, random_state=None, **kwargs):
 
         self.suppress = suppress
         self.sparse = sparse
@@ -61,7 +63,8 @@ class VertexFrequencyCluster(BaseEstimator):
         self.ees = None
         self.res = None
         self._sklearn_params = kwargs
-        self._clusterobj = KMeans(n_clusters=n_clusters, **kwargs)
+        self._clusterobj = KMeans(n_clusters=n_clusters,
+                                  random_state=random_state, **kwargs)
 
     def _activate(self, x, alpha=1):
         """Activate spectrograms for clustering
@@ -114,10 +117,11 @@ class VertexFrequencyCluster(BaseEstimator):
 
         self.RES = RES
         if sparse.issparse(window):
-            C = window.multiply(self.RES[:, None])
+            # the next computation becomes dense - better to make dense now
+            C = window.multiply(self.RES[:, None]).toarray()
         else:
             C = np.multiply(window, self.RES[:, None])
-        C = preprocessing.normalize(self.eigenvectors.T@C, axis=0)
+        C = preprocessing.normalize(self.eigenvectors.T @ C, axis=0)
         return C.T
 
     def _compute_window(self, window, t=1):
@@ -155,7 +159,7 @@ class VertexFrequencyCluster(BaseEstimator):
         range_dim = np.max(np.max(data, axis=0) - np.min(data, axis=0))
         range_meld = np.max(self.EES) - np.min(self.EES)
         scale = (range_dim / range_meld) * weight
-        data_nu = np.c_[data,(self.EES * scale)]
+        data_nu = np.c_[data, (self.EES * scale)]
         return data_nu
 
     def fit(self, G):
@@ -192,33 +196,33 @@ class VertexFrequencyCluster(BaseEstimator):
 
         else:
             if not isinstance(self.RES, (list, tuple, np.ndarray, pd.Series)):
-                raise TypeError('`RES` must be array-like. Got: {}'.format(type(self.RES)))
-            else:
-                self.RES = np.array(self.RES)
+                raise TypeError('`RES` must be array-like.')
 
-            if not EES is None and not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)):
-                raise TypeError('`EES` must be array-like. Got: {}'.format(type(self.EES)))
-            else:
+            if EES is not None and not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)):
+                raise TypeError('`EES` must be array-like.')
+            if EES is not None:
                 self.EES = np.array(self.EES)
+
+            self.RES = np.array(self.RES)
             if not self.N in self.RES.shape:
                 raise ValueError('At least one axis of `RES` must be'
                                  ' of length `N`.')
-            if not EES is None and self.N not in self.EES.shape:
+            if EES is not None and self.N not in self.EES.shape:
                 raise ValueError('At least one axis of `EES` must be'
                                  ' of length `N`.')
 
             self.RES = self.RES - self.RES.mean()
-            self.spec_hist = []
-            for i in range(self.window_count):
+            self.spectrogram = np.zeros((self.windows[0].shape[1],
+                                         self.eigenvectors.shape[1]))
+            for window in self.windows:
                 spectrogram = self._compute_spectrogram(
-                    self.RES, self.windows[i])
+                    self.RES, window)
                 # There's maybe something wrong here
                 spectrogram = self._activate(spectrogram)
-                self.spec_hist.append(spectrogram)
+                self.spectrogram += spectrogram
                 # temp = preprocessing.normalize(temp, 'l2', axis=1)
                 # This work goes nowhere
 
-            self.spectrogram = sum(self.spec_hist)
             """ This can be added later to support multiple signals
             for i in range(ncols):
                 for t in range(self.window_count):
@@ -234,7 +238,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
         # Appending the EES to the spectrogram
         # TODO: is this a bad idea?
-        if not EES is None:
+        if EES is not None:
             self.spectrogram = self._concat_EES_to_spectrogram(weight)
 
         return self.spectrogram
@@ -247,10 +251,10 @@ class VertexFrequencyCluster(BaseEstimator):
         '''Runs KMeans on the spectrogram.'''
         if not self.isfit:
             raise ValueError("Estimator is not fit. "
-                          "Call VertexFrequencyCluster.fit().")
+                             "Call VertexFrequencyCluster.fit().")
         if self.spectrogram is None:
             raise ValueError("Estimator is not transformed. "
-                          "Call VertexFrequencyCluster.transform().")
+                             "Call VertexFrequencyCluster.transform().")
 
         self.labels_ = self._clusterobj.fit_predict(self.spectrogram)
         self.labels_ = utils.sort_clusters_by_meld_score(

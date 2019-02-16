@@ -5,8 +5,8 @@ from setuptools import setup
 install_requires = [
     'numpy>=1.14.0',
     'scipy>=1.1.0',
-    'future',
     'graphtools>=0.1.8.1',
+    'pygsp'
 ]
 
 test_requires = [
@@ -14,6 +14,8 @@ test_requires = [
     'nose2',
     'coverage',
     'coveralls',
+    'pandas<0.24',
+    'scikit-learn'
 ]
 
 doc_requires = [
