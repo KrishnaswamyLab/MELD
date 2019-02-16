@@ -182,7 +182,7 @@ class VertexFrequencyCluster(BaseEstimator):
         self.isfit = True
         return self
 
-    def transform(self, RES, EES, weight=1, center=True):
+    def transform(self, RES, EES=None, weight=1, center=True):
         '''Calculates the spectrogram of the graph using the RES'''
         self.RES = RES
         self.EES = EES
@@ -191,14 +191,20 @@ class VertexFrequencyCluster(BaseEstimator):
                 'Estimator must be `fit` before running `transform`.')
 
         else:
-            if ((not isinstance(self.RES, (list, tuple, np.ndarray, pd.Series))) or
-                (not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)))):
-                raise TypeError('`RES` and `EES` must be array-like')
-            self.RES = np.array(self.RES)
-            self.EES = np.array(self.EES)
-            if ((self.N not in self.RES.shape) or
-               (self.N not in self.EES.shape)):
-                raise ValueError('At least one axis of `RES` and `EES` must be'
+            if not isinstance(self.RES, (list, tuple, np.ndarray, pd.Series)):
+                raise TypeError('`RES` must be array-like. Got: {}'.format(type(self.RES)))
+            else:
+                self.RES = np.array(self.RES)
+
+            if not EES is None and not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)):
+                raise TypeError('`EES` must be array-like. Got: {}'.format(type(self.EES)))
+            else:
+                self.EES = np.array(self.EES)
+            if not self.N in self.RES.shape:
+                raise ValueError('At least one axis of `RES` must be'
+                                 ' of length `N`.')
+            if not EES is None and self.N not in self.EES.shape:
+                raise ValueError('At least one axis of `EES` must be'
                                  ' of length `N`.')
 
             self.RES = self.RES - self.RES.mean()
@@ -228,22 +234,21 @@ class VertexFrequencyCluster(BaseEstimator):
 
         # Appending the EES to the spectrogram
         # TODO: is this a bad idea?
-        self.spectrogram = self._concat_EES_to_spectrogram(weight)
-
+        if not EES is None:
+            self.spectrogram = self._concat_EES_to_spectrogram(weight)
 
         return self.spectrogram
 
-    def fit_transform(self, G, RES, EES, **kwargs):
+    def fit_transform(self, G, RES, EES=None, **kwargs):
         self.fit(G, **kwargs)
         return self.transform(RES, EES, **kwargs)
 
-    def predict(self, RES=None, **kwargs):
+    def predict(self, **kwargs):
         '''Runs KMeans on the spectrogram.'''
         if not self.isfit:
             raise ValueError("Estimator is not fit. "
                           "Call VertexFrequencyCluster.fit().")
         if self.spectrogram is None:
-
             raise ValueError("Estimator is not transformed. "
                           "Call VertexFrequencyCluster.transform().")
 
@@ -252,8 +257,8 @@ class VertexFrequencyCluster(BaseEstimator):
             self.labels_, self.RES)
         return self.labels_
 
-    def fit_predict(self, G, RES, **kwargs):
-        self.fit_transform(G, RES, **kwargs)
+    def fit_predict(self, G, RES, EES=None, **kwargs):
+        self.fit_transform(G, RES, EES, **kwargs)
         return self.predict()
 
     def set_kmeans_params(self, **kwargs):

@@ -111,7 +111,8 @@ def test_cluster():
     spectrogram = vfc_op.fit_transform(G, RES=labels, EES=EES)
     assert isinstance(vfc_op._basewindow, np.ndarray)
     vfc_op.sparse = True
-    np.testing.assert_allclose(spectrogram, vfc_op.fit_transform(G, RES=labels, EES=EES))
+    np.testing.assert_allclose(spectrogram, vfc_op.fit_transform(G, RES=labels, EES=EES),
+                               atol=1e-1, rtol=1e-1)
     assert sparse.issparse(vfc_op._basewindow)
 
     # Transform before fit
@@ -123,24 +124,31 @@ def test_cluster():
     assert_raise_message(ValueError,
                          "Estimator is not fit. Call VertexFrequencyCluster.fit().",
                          meld.VertexFrequencyCluster().predict, RES=labels, EES=EES)
-    # predict before transform
-    assert_raise_message(ValueError,
-                         "Estimator is not transformed. "
-                         "Call VertexFrequencyCluster.transform().",
-                         meld.VertexFrequencyCluster().predict, RES=labels, EES=EES)
 
     # RES not array-like
     assert_raise_message(TypeError,
-                         '`RES` and `EES` must be array-like',
+                         '`RES` must be array-like. Got: {}'.format(type('hello world')),
                          meld.VertexFrequencyCluster().fit_transform, G=G,
                          RES='hello world', EES=EES)
+    # EES not array-like
+    assert_raise_message(TypeError,
+                         '`EES` must be array-like. Got: {}'.format(type('hello world')),
+                         meld.VertexFrequencyCluster().fit_transform, G=G,
+                         RES=labels, EES='hello world')
 
     # RES and n mismatch
     assert_raise_message(ValueError,
-                         'At least one axis of `RES` and `EES` must be'
+                         'At least one axis of `RES` must be'
                          ' of length `N`.',
                          meld.VertexFrequencyCluster().fit_transform, G=G,
                          RES=np.ones(7), EES=EES)
+
+    # RES and n mismatch
+    assert_raise_message(ValueError,
+                         'At least one axis of `EES` must be'
+                         ' of length `N`.',
+                         meld.VertexFrequencyCluster().fit_transform, G=G,
+                         RES=labels, EES=np.ones(7))
 
     # Predict
     meld.VertexFrequencyCluster().fit_predict(G=G, RES=labels, EES=EES)
