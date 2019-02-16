@@ -23,11 +23,13 @@ MELD (Manifold Enhancement of Latent Dimensions)
     :target: https://github.com/KrishnaswamyLab/MELD/
     :alt: GitHub stars
 
+.. _guided tutorial in python:
+    :target: https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/Wagner2018_Chordin_Cas9_Mutagenesis.ipynb
+
 
 Quantifying the effect of experimental perturbations in scRNA-seq data.
 
-Quick Start - Read our `guided tutorial in python <https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/Wagner2018_Chordin_Cas9_Mutagenesis.ipynb
->`_.
+Quick Start - check out our `guided tutorial in python`_.
 
 For a more in depth explanation of MELD, read our manuscript on BioRxiv:
 
