@@ -74,7 +74,7 @@ class MELD(BaseEstimator):
         G.estimate_lmax()
         self.filt = pygsp.filters.Filter(G, filterfunc)  # build filter
 
-    def transform(self, RES, G):
+    def transform(self, G, RES):
         """Filters a signal `RES` over graph `G`.
 
         Parameters
@@ -110,7 +110,7 @@ class MELD(BaseEstimator):
 
         return RES_nu
 
-    def fit_transform(self, RES, G):
+    def fit_transform(self, G, RES):
         """Builds the MELD filter over a graph `G` and filters a signal `RES`.
 
         Parameters
@@ -129,5 +129,5 @@ class MELD(BaseEstimator):
         """
 
         self.fit(G)
-        self.EES = self.transform(RES, G)
+        self.EES = self.transform(G, RES)
         return self.EES
