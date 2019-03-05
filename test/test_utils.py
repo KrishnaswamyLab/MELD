@@ -34,7 +34,7 @@ def make_batches(n_pts_per_cluster=5000):
 def test_utils():
     data, labels = make_batches(n_pts_per_cluster=250)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
-    EES = meld.MELD().fit_transform(labels, G)
+    EES = meld.MELD().fit_transform(G, labels)
 
     clusters = meld.VertexFrequencyCluster().fit_predict(G=G, RES=labels, EES=EES)
     meld.utils.sort_clusters_by_meld_score(clusters, EES)
