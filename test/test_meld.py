@@ -16,7 +16,7 @@ def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
     meld_op = meld.MELD()
-    EES = meld_op.fit_transform(labels, G)
+    EES = meld_op.fit_transform(G, labels)
     meld.VertexFrequencyCluster().fit_transform(G=G, RES=labels, EES=EES)
 
 
@@ -49,13 +49,13 @@ def test_meld():
     G = gt.Graph(D, knn=20, decay=10, use_pygsp=True)
 
     meld_op = meld.MELD()
-    B = meld_op.fit_transform(RES, G)
+    B = meld_op.fit_transform(G, RES)
 
     assert np.isclose(np.sum(B), 532.0001992193013)
 
     meld_op = meld.MELD()
-    B = meld_op.fit_transform(RES, gt.Graph(
-        D, knn=20, decay=10, use_pygsp=False))
+    B = meld_op.fit_transform(gt.Graph(
+        D, knn=20, decay=10, use_pygsp=False), RES)
     assert np.isclose(np.sum(B), 532.0001992193013)
 
     # lap type TypeError
