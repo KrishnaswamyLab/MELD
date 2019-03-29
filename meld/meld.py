@@ -96,17 +96,9 @@ class MELD(BaseEstimator):
         G = utils._check_pygsp_graph(G)
         # Checking shape of RES and G match
         if RES.shape[0] != G.N:
-            if len(RES.shape) > 1 and RES.shape[1] == G.N:
-                warnings.warn(
-                    "Input matrix is column-wise rather than row-wise. "
-                    "transposing (output will be transposed)",
-                    RuntimeWarning)
-                RES = RES.T
-            else:
-                raise ValueError(
+            raise ValueError(
                     "Input data ({}) and input graph ({}) "
                     "are not of the same size".format(RES.shape, G.N))
-
         RES_nu = self.filt.filter(RES, method=self.solver,
                                 order=self.M)  # apply filter
 

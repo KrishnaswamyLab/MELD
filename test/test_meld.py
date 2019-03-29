@@ -69,15 +69,6 @@ def test_meld():
         meld.MELD(lap_type=lap_type).fit,
         G=G)
 
-    # RES transpose
-    assert_warns_message(
-        RuntimeWarning,
-        "Input matrix is column-wise rather than row-wise. "
-        "transposing (output will be transposed)",
-        meld_op.fit_transform,
-        RES=np.ones([2, G.N]),
-        G=G)
-
     # RES wrong shape
     RES = np.ones([2, G.N + 100])
     assert_raise_message(
@@ -131,7 +122,7 @@ class TestCluster(unittest.TestCase):
         assert sparse.issparse(vfc_op._basewindow)
 
     #def test_2d(self):
-    #    RES = np.array([self.labels, self.labels])
+    #    RES = np.array([self.labels, self.labels]).T
     #    vfc_op = meld.VertexFrequencyCluster(
     #        window_sizes=self.window_sizes)
     #    meld_op = meld.MELD()
