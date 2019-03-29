@@ -130,6 +130,17 @@ class TestCluster(unittest.TestCase):
         assert sparse_spectrogram.shape == spectrogram.shape
         assert sparse.issparse(vfc_op._basewindow)
 
+    def test_2d(self):
+        RES = np.array([self.labels, self.labels])
+        vfc_op = meld.VertexFrequencyCluster(
+            window_sizes=self.window_sizes)
+        meld_op = meld.MELD()
+        EES = meld_op.fit_transform(G=self.G, RES=RES)
+        clusters = vfc_op.fit_predict(
+            self.G, RES=RES,
+            EES=EES)
+        assert len(clusters) == len(self.labels)
+
     def test_transform_before_fit(self):
         # Transform before fit
         assert_raise_message(ValueError,
