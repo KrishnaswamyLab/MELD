@@ -1,3 +1,5 @@
+# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+
 import numpy as np
 import pandas as pd
 from scipy import sparse

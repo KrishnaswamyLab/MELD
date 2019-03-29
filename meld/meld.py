@@ -1,3 +1,5 @@
+# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+
 import pygsp
 from sklearn.base import BaseEstimator
 import warnings
