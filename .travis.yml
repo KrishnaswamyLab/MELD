@@ -13,7 +13,7 @@ install:
 script:
 - pip install .[test]
 - python setup.py test
-- pip install .[doc]
+- pip install -r doc/source/requirements.txt
 - cd doc; make html
 - cd ..
 deploy:
