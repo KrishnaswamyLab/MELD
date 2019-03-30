@@ -11,7 +11,7 @@ cache:
 install:
 - python setup.py install
 script:
-- pip install -U .[test]
+- pip install .[test]
 - python setup.py test
 - pip install .[doc]
 - cd doc; make html
