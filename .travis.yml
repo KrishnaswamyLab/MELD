@@ -13,7 +13,7 @@ install:
 script:
 - pip install -U .[test]
 - python setup.py test
-- pip install -U .[doc]
+- pip install .[doc]
 - cd doc; make html
 - cd ..
 deploy:
