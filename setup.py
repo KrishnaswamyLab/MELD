@@ -21,7 +21,7 @@ test_requires = [
 ]
 
 doc_requires = [
-    'sphinx',
+    'sphinx<=1.8.5',
     'sphinxcontrib-napoleon',
     'autodocsumm',
 ]
@@ -42,7 +42,7 @@ setup(name='meld',
       author='Daniel Burkhardt, Krishnaswamy Lab, Yale University',
       author_email='daniel.burkhardt@yale.edu',
       packages=['meld', ],
-      license='GNU General Public License Version 2',
+      license='Dual License: See LICENSE file',
       install_requires=install_requires,
       extras_require={'test': test_requires,
                       'doc': doc_requires},
