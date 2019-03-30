@@ -11,9 +11,11 @@ cache:
 install:
 - python setup.py install
 script:
-- pip install -U .[test,doc]
+- pip install .[test]
 - python setup.py test
-- cd doc; make html; cd ..
+- pip install -r doc/source/requirements.txt
+- cd doc; make html
+- cd ..
 deploy:
   provider: pypi
   user: dburkhardt

@@ -1,3 +1,5 @@
+# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+
 import numpy as np
 import graphtools as gt
 import meld

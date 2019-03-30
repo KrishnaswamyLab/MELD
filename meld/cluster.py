@@ -1,3 +1,5 @@
+# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+
 import numpy as np
 import pandas as pd
 from scipy import sparse
@@ -104,12 +106,14 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
+        if len(RES.shape) == 1:
+            RES = RES[:, None]
         self.RES = RES
         if sparse.issparse(window):
             # the next computation becomes dense - better to make dense now
-            C = window.multiply(self.RES[:, None]).toarray()
+            C = window.multiply(self.RES).toarray()
         else:
-            C = np.multiply(window, self.RES[:, None])
+            C = np.multiply(window, self.RES)
         C = preprocessing.normalize(self.eigenvectors.T @ C, axis=0)
         return C.T
 
@@ -209,7 +213,6 @@ class VertexFrequencyCluster(BaseEstimator):
                 # There's maybe something wrong here
                 spectrogram = self._activate(spectrogram)
                 self.spectrogram += spectrogram
-
 
             """ This can be added later to support multiple signals
             for i in range(ncols):

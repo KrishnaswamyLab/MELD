@@ -1,3 +1,5 @@
+# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+
 import numpy as np
 import graphtools as gt
 import meld
@@ -67,15 +69,6 @@ def test_meld():
         meld.MELD(lap_type=lap_type).fit,
         G=G)
 
-    # RES transpose
-    assert_warns_message(
-        RuntimeWarning,
-        "Input matrix is column-wise rather than row-wise. "
-        "transposing (output will be transposed)",
-        meld_op.fit_transform,
-        RES=np.ones([2, G.N]),
-        G=G)
-
     # RES wrong shape
     RES = np.ones([2, G.N + 100])
     assert_raise_message(
@@ -127,6 +120,17 @@ class TestCluster(unittest.TestCase):
             self.G, RES=self.labels, EES=self.EES)
         assert sparse_spectrogram.shape == spectrogram.shape
         assert sparse.issparse(vfc_op._basewindow)
+
+    #def test_2d(self):
+    #    RES = np.array([self.labels, self.labels]).T
+    #    vfc_op = meld.VertexFrequencyCluster(
+    #        window_sizes=self.window_sizes)
+    #    meld_op = meld.MELD()
+    #    EES = meld_op.fit_transform(G=self.G, RES=RES)
+    #    clusters = vfc_op.fit_predict(
+    #        self.G, RES=RES,
+    #        EES=EES)
+    #    assert len(clusters) == len(self.labels)
 
     def test_transform_before_fit(self):
         # Transform before fit
