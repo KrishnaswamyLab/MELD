@@ -13,7 +13,6 @@ from sklearn.utils.testing import assert_warns_message, assert_raise_message, as
 
 from utils import make_batches
 
-
 def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
@@ -33,7 +32,6 @@ def test_check_pygsp_graph():
         "With graphtools, use the `use_pygsp=True` flag.",
         meld.utils._check_pygsp_graph,
         G='hello world')
-
 
 def test_meld():
     # MELD operator
@@ -121,16 +119,28 @@ class TestCluster(unittest.TestCase):
         assert sparse_spectrogram.shape == spectrogram.shape
         assert sparse.issparse(vfc_op._basewindow)
 
-    #def test_2d(self):
-    #    RES = np.array([self.labels, self.labels]).T
-    #    vfc_op = meld.VertexFrequencyCluster(
-    #        window_sizes=self.window_sizes)
-    #    meld_op = meld.MELD()
-    #    EES = meld_op.fit_transform(G=self.G, RES=RES)
-    #    clusters = vfc_op.fit_predict(
-    #        self.G, RES=RES,
-    #        EES=EES)
-    #    assert len(clusters) == len(self.labels)
+    def test_2d(self):
+        RES = np.array([self.labels, self.labels]).T
+        vfc_op = meld.VertexFrequencyCluster(
+            window_sizes=self.window_sizes)
+        meld_op = meld.MELD()
+        EES = meld_op.fit_transform(G=self.G, RES=RES)
+        clusters = vfc_op.fit_predict(
+            self.G, RES=RES,
+            EES=EES)
+        assert len(clusters) == len(self.labels)
+
+    def test_RES_EES_shape(self):
+        RES = np.array([self.labels, self.labels]).T
+        vfc_op = meld.VertexFrequencyCluster(
+            window_sizes=self.window_sizes)
+        meld_op = meld.MELD()
+        EES = meld_op.fit_transform(G=self.G, RES=RES)
+        assert_raise_message(ValueError,
+        '`RES` and `EES` must have the same shape.'
+        'Got RES: {} and EES: {}'.format(str(RES[:,1].shape), str(EES.shape)),
+        vfc_op.fit_predict, G=self.G, RES=RES[:,1], EES=EES)
+
 
     def test_transform_before_fit(self):
         # Transform before fit

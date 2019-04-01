@@ -8,6 +8,7 @@ install_requires = [
     'numpy>=1.14.0',
     'scipy>=1.1.0',
     'graphtools>=0.1.8.1',
+    'scprep',
     'pygsp'
 ]
 
@@ -17,7 +18,7 @@ test_requires = [
     'coverage',
     'coveralls',
     'pandas<0.24',
-    'scikit-learn'
+    'scikit-learn',
 ]
 
 doc_requires = [
