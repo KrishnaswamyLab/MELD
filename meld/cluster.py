@@ -214,7 +214,7 @@ class VertexFrequencyCluster(BaseEstimator):
         if not self.N in self.RES.shape:
             raise ValueError('At least one axis of `RES` must be'
                              ' of length `N`.')
-    
+
         if EES is not None:
             if  self.N not in self.EES.shape:
                 raise ValueError('At least one axis of `EES` must be'
