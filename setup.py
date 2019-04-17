@@ -35,7 +35,7 @@ version_py = os.path.join(os.path.dirname(
 version = open(version_py).read().strip().split(
     '=')[-1].replace('"', '').strip()
 
-readme = open('README.md').read()
+readme = open('README.rst').read()
 
 setup(name='meld',
       version=version,
@@ -49,7 +49,6 @@ setup(name='meld',
                       'doc': doc_requires},
       test_suite='nose2.collector.collector',
       long_description=readme,
-      long_description_content_type='text/markdown',
       url='https://github.com/KrishnaswamyLab/MELD',
       download_url="https://github.com/KrishnaswamyLab/MELD/archive/v{}.tar.gz".format(
           version),
