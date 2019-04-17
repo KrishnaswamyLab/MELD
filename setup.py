@@ -8,6 +8,8 @@ install_requires = [
     'numpy>=1.14.0',
     'scipy>=1.1.0',
     'graphtools>=0.1.8.1',
+    'pandas<0.24',
+    'scprep',
     'pygsp'
 ]
 
@@ -16,8 +18,7 @@ test_requires = [
     'nose2',
     'coverage',
     'coveralls',
-    'pandas<0.24',
-    'scikit-learn'
+    'scikit-learn',
 ]
 
 doc_requires = [
@@ -34,7 +35,7 @@ version_py = os.path.join(os.path.dirname(
 version = open(version_py).read().strip().split(
     '=')[-1].replace('"', '').strip()
 
-readme = open('README.rst').read()
+readme = open('README.md').read()
 
 setup(name='meld',
       version=version,
@@ -42,12 +43,13 @@ setup(name='meld',
       author='Daniel Burkhardt, Krishnaswamy Lab, Yale University',
       author_email='daniel.burkhardt@yale.edu',
       packages=['meld', ],
-      license='Dual License: See LICENSE file',
+      license='Dual License - See LICENSE file',
       install_requires=install_requires,
       extras_require={'test': test_requires,
                       'doc': doc_requires},
       test_suite='nose2.collector.collector',
       long_description=readme,
+      long_description_content_type='text/markdown',
       url='https://github.com/KrishnaswamyLab/MELD',
       download_url="https://github.com/KrishnaswamyLab/MELD/archive/v{}.tar.gz".format(
           version),
