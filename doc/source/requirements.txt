@@ -1,7 +1,8 @@
 numpy>=1.14.0
 scipy>=1.1.0
+pandas<0.24
 future
 graphtools>=0.1.8.1
-sphinx
+sphinx<=1.8.5
 sphinxcontrib-napoleon
 autodocsumm
