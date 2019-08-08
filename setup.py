@@ -2,7 +2,7 @@
 
 import os
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 
 install_requires = [
     'numpy>=1.14.0',
@@ -42,7 +42,7 @@ setup(name='meld',
       description='MELD',
       author='Daniel Burkhardt, Krishnaswamy Lab, Yale University',
       author_email='daniel.burkhardt@yale.edu',
-      packages=['meld', ],
+      packages=find_packages(),
       license='Dual License - See LICENSE file',
       install_requires=install_requires,
       extras_require={'test': test_requires,
