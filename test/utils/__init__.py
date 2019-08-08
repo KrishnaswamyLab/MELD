@@ -20,9 +20,7 @@ def ignore_numpy_warning():
         "broadcast_array. Set the writable flag explicitly to avoid this warning.")
     warnings.filterwarnings(
         "ignore", category=DeprecationWarning,
-        message="Numpy has detected that you (may be) writing to an array with "
-        "overlapping memory from np.broadcast_arrays. If this is intentional "
-        "set the WRITEABLE flag True or make a copy immediately before writing.")
+        message="WRITEABLE flag")
 
 reset_warnings()
 
