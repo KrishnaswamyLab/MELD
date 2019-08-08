@@ -14,7 +14,7 @@ def ignore_numpy_warning():
         "ignore", category=PendingDeprecationWarning,
         message="the matrix subclass is not the recommended way to represent "
         "matrices or deal with linear algebra ")
-    warnings.filterwarning(
+    warnings.filterwarnings(
         "ignore", category=FutureWarning,
         message="future versions will not create a writeable array from "
         "broadcast_array. Set the writable flag explicitly to avoid this warning.")
