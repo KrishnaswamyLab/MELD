@@ -51,12 +51,12 @@ def test_meld():
     meld_op = meld.MELD()
     B = meld_op.fit_transform(G, RES)
 
-    assert np.isclose(np.sum(B), 532.0001992193013)
+    np.testing.assert_allclose(np.sum(B), 532.0001992193013)
 
     meld_op = meld.MELD()
     B = meld_op.fit_transform(gt.Graph(
         D, knn=20, decay=10, use_pygsp=False), RES)
-    assert np.isclose(np.sum(B), 532.0001992193013)
+    np.testing.assert_allclose(np.sum(B), 532.0001992193013)
 
     # lap type TypeError
     lap_type = 'hello world'
