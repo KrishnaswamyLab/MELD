@@ -9,7 +9,7 @@ cache:
 - pip
 - apt
 install:
-- python setup.py install
+- pip install .
 script:
 - pip install .[test]
 - python setup.py test
