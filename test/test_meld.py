@@ -132,7 +132,7 @@ class TestCluster(unittest.TestCase):
     def test_cluster_no_EES(self):
         vfc_op = meld.VertexFrequencyCluster(
             window_sizes=self.window_sizes)
-        spectrogram = vfc_op.fit_transform(
+        spectrogram = vfc_op.fit_predict(
             self.G, RES=self.labels, EES=None)
 
     def test_2d(self):
