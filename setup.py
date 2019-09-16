@@ -19,7 +19,7 @@ test_requires = [
     'coverage',
     'coveralls',
     'scikit-learn',
-    'packages'
+    'packaging'
 ]
 
 doc_requires = [
