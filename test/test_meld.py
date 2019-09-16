@@ -129,6 +129,12 @@ class TestCluster(unittest.TestCase):
         assert sparse_spectrogram.shape == spectrogram.shape
         assert sparse.issparse(vfc_op._basewindow)
 
+    def test_cluster_no_EES(self):
+        vfc_op = meld.VertexFrequencyCluster(
+            window_sizes=self.window_sizes)
+        spectrogram = vfc_op.fit_transform(
+            self.G, RES=self.labels, EES=None)
+
     def test_2d(self):
         RES = np.array([self.labels, self.labels]).T
         vfc_op = meld.VertexFrequencyCluster(
