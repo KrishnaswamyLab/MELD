@@ -13,6 +13,9 @@ from sklearn.utils.testing import assert_warns_message, assert_raise_message, as
 
 from utils import make_batches
 
+from packaging import version
+
+
 def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
     G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
@@ -51,12 +54,19 @@ def test_meld():
     meld_op = meld.MELD()
     B = meld_op.fit_transform(G, RES)
 
-    np.testing.assert_allclose(np.sum(B), 532.0001992193013)
+    if version.parse(np.__version__) < version.parse('1.17'):
+        np.testing.assert_allclose(np.sum(B), 532.0001992193013)
+    else:
+        np.testing.assert_allclose(np.sum(B), 519.0001572740623)
 
     meld_op = meld.MELD()
     B = meld_op.fit_transform(gt.Graph(
         D, knn=20, decay=10, use_pygsp=False), RES)
-    np.testing.assert_allclose(np.sum(B), 532.0001992193013)
+
+    if version.parse(np.__version__) < version.parse('1.17'):
+        np.testing.assert_allclose(np.sum(B), 532.0001992193013)
+    else:
+        np.testing.assert_allclose(np.sum(B), 519.0001572740623)
 
     # lap type TypeError
     lap_type = 'hello world'
