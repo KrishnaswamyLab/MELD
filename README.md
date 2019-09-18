@@ -17,7 +17,7 @@
 
 MELD is a Python package for quantifying the effects of experimental perturbations. For an in depth explanation of the algorithm, read our manuscript on BioRxiv.
 
-[**Enhancing experimental signals in single-cell RNA-sequencing data using graph signal processing**. Daniel B Burkhardt\*, Jay S Stanley\*, Ana Luisa Perdigoto, Scott A Gigante, Kevan C Herold, Guy Wolf, Antonio J Giraldez, David van Dijk, Smita Krishnaswamy. BioRxiv. doi:10.1101/532846.](<https://www.biorxiv.org/content/10.1101/532846v1>)
+[**Quantifying the effect of experimental perturbations in single-cell RNA-sequencing data using graph signal processing**. Daniel B Burkhardt\*, Jay S Stanley\*, Ana Luisa Perdigoto, Scott A Gigante, Kevan C Herold, Guy Wolf, Antonio J Giraldez, David van Dijk, Smita Krishnaswamy. BioRxiv. doi:10.1101/532846.](<https://www.biorxiv.org/content/10.1101/532846v2>)
 
 The goal of MELD is to identify populations of cells that are most affected by an experimental perturbation. Consider a simple two-sample experiment: one experimental sample and one control sample.
 
