@@ -2,3 +2,4 @@
 
 from .meld import MELD
 from .cluster import VertexFrequencyCluster
+from .version import __version__

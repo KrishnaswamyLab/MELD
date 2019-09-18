@@ -2,12 +2,14 @@
 
 import os
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 
 install_requires = [
     'numpy>=1.14.0',
     'scipy>=1.1.0',
     'graphtools>=0.1.8.1',
+    'pandas<0.24',
+    'scprep',
     'pygsp'
 ]
 
@@ -16,8 +18,8 @@ test_requires = [
     'nose2',
     'coverage',
     'coveralls',
-    'pandas<0.24',
-    'scikit-learn'
+    'scikit-learn',
+    'packaging'
 ]
 
 doc_requires = [
@@ -41,7 +43,7 @@ setup(name='meld',
       description='MELD',
       author='Daniel Burkhardt, Krishnaswamy Lab, Yale University',
       author_email='daniel.burkhardt@yale.edu',
-      packages=['meld', ],
+      packages=find_packages(),
       license='Dual License - See LICENSE file',
       install_requires=install_requires,
       extras_require={'test': test_requires,

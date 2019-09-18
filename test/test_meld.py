@@ -13,6 +13,8 @@ from sklearn.utils.testing import assert_warns_message, assert_raise_message, as
 
 from utils import make_batches
 
+from packaging import version
+
 
 def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
@@ -34,7 +36,6 @@ def test_check_pygsp_graph():
         meld.utils._check_pygsp_graph,
         G='hello world')
 
-
 def test_meld():
     # MELD operator
     # Numerical accuracy
@@ -53,12 +54,19 @@ def test_meld():
     meld_op = meld.MELD()
     B = meld_op.fit_transform(G, RES)
 
-    assert np.isclose(np.sum(B), 532.0001992193013)
+    if version.parse(np.__version__) < version.parse('1.17'):
+        np.testing.assert_allclose(np.sum(B), 532.0001992193013)
+    else:
+        np.testing.assert_allclose(np.sum(B), 519.0001572740623)
 
     meld_op = meld.MELD()
     B = meld_op.fit_transform(gt.Graph(
         D, knn=20, decay=10, use_pygsp=False), RES)
-    assert np.isclose(np.sum(B), 532.0001992193013)
+
+    if version.parse(np.__version__) < version.parse('1.17'):
+        np.testing.assert_allclose(np.sum(B), 532.0001992193013)
+    else:
+        np.testing.assert_allclose(np.sum(B), 519.0001572740623)
 
     # lap type TypeError
     lap_type = 'hello world'
@@ -121,16 +129,34 @@ class TestCluster(unittest.TestCase):
         assert sparse_spectrogram.shape == spectrogram.shape
         assert sparse.issparse(vfc_op._basewindow)
 
-    #def test_2d(self):
-    #    RES = np.array([self.labels, self.labels]).T
-    #    vfc_op = meld.VertexFrequencyCluster(
-    #        window_sizes=self.window_sizes)
-    #    meld_op = meld.MELD()
-    #    EES = meld_op.fit_transform(G=self.G, RES=RES)
-    #    clusters = vfc_op.fit_predict(
-    #        self.G, RES=RES,
-    #        EES=EES)
-    #    assert len(clusters) == len(self.labels)
+    def test_cluster_no_EES(self):
+        vfc_op = meld.VertexFrequencyCluster(
+            window_sizes=self.window_sizes)
+        spectrogram = vfc_op.fit_predict(
+            self.G, RES=self.labels, EES=None)
+
+    def test_2d(self):
+        RES = np.array([self.labels, self.labels]).T
+        vfc_op = meld.VertexFrequencyCluster(
+            window_sizes=self.window_sizes)
+        meld_op = meld.MELD()
+        EES = meld_op.fit_transform(G=self.G, RES=RES)
+        clusters = vfc_op.fit_predict(
+            self.G, RES=RES,
+            EES=EES)
+        assert len(clusters) == len(self.labels)
+
+    def test_RES_EES_shape(self):
+        RES = np.array([self.labels, self.labels]).T
+        vfc_op = meld.VertexFrequencyCluster(
+            window_sizes=self.window_sizes)
+        meld_op = meld.MELD()
+        EES = meld_op.fit_transform(G=self.G, RES=RES)
+        assert_raise_message(ValueError,
+        '`RES` and `EES` must have the same shape.'
+        'Got RES: {} and EES: {}'.format(str(RES[:,1].shape), str(EES.shape)),
+        vfc_op.fit_predict, G=self.G, RES=RES[:,1], EES=EES)
+
 
     def test_transform_before_fit(self):
         # Transform before fit

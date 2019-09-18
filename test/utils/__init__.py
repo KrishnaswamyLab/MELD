@@ -15,7 +15,6 @@ def ignore_numpy_warning():
         message="the matrix subclass is not the recommended way to represent "
         "matrices or deal with linear algebra ")
 
-
 reset_warnings()
 
 def make_batches(n_pts_per_cluster=5000):
