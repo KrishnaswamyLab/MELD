@@ -1,6 +1,6 @@
 numpy>=1.14.0
 scipy>=1.1.0
-pandas<0.24
+pandas>=0.25
 future
 graphtools>=0.1.8.1
 sphinx<=1.8.5
