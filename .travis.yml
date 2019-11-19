@@ -12,6 +12,7 @@ install:
 - pip install -r requirements.txt
 - pip install .
 script:
+- python -c "import meld"
 - pip install .[test]
 - python setup.py test
 - pip install -r doc/source/requirements.txt
