@@ -31,14 +31,14 @@ The basic MELD workflow is:
 1. Load, filter, normalize, and transform a counts matrix (or CyTOF data matrix) from each sample
 2. Concatenate the matrices from each sample
   * `data, batch_idx = scprep.utils.combine_batches([batch_1, batch_2])`
-3. Learn a cell similarity graph `G` using [`graphtools`](www.github.com/KrishnaswamyLab/graphtools)
+3. Learn a cell similarity graph `G` using [`graphtools`](https://www.github.com/KrishnaswamyLab/graphtools)
   * `G = gt.Graph(data)`
-3. Visualize data using [`PHATE`](www.github.com/KrishnaswamyLab/PHATE)
-4. Create the RES using the batch label for each cell
+4. Visualize data using [`PHATE`](https://www.github.com/KrishnaswamyLab/PHATE)
+5. Create the RES using the batch label for each cell
   * `RES = np.array([-1 if b == '1' else 1 for b in batch_idx])`
-5. Filter the RES to recover the EES
+6. Filter the RES to recover the EES
   * `EES = MELD().fit_transform(G, RES)`
-6. Use the RES and EES to recover Vertex Frequency Clusters
+7. Use the RES and EES to recover Vertex Frequency Clusters
   * `VertexFrequencyCluster(k).fit_predict(G, RES, EES)`
 
 Now you can identify which clusters have the highest or lowest EES values and which genes vary most strongly with the EES.
@@ -55,9 +55,13 @@ pip install --user meld
 MELD requires Python >= 3.5. All other requirements are installed automatically by ``pip``.
 
 ### Usage example
+
+For this usage example to work, you must have already loaded library-size normalized and square root-transformed data into a variable named `data`. You also need to encode the condition of each sample into an `array-like` named `RES` of length `data.shape[0]`. Each entry of the `RES` array should be `1` if the cell is from the experimental condition and `-1` if the cell is from the control condition.
+
 ```
    import meld
    import graphtools
-   G = graphtools.Graph(data, use_pygsp=True)
+
+   G = graphtools.Graph(data, use_pygsp=True)   
    EES = meld.MELD().fit_transform(G=G, RES=RES)
 ```
