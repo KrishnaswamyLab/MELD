@@ -31,9 +31,9 @@ The basic MELD workflow is:
 1. Load, filter, normalize, and transform a counts matrix (or CyTOF data matrix) from each sample
 2. Concatenate the matrices from each sample
   * `data, batch_idx = scprep.utils.combine_batches([batch_1, batch_2])`
-3. Learn a cell similarity graph `G` using [`graphtools`](https://www.github.com/KrishnaswamyLab/graphtools)
+3. Learn a cell similarity graph `G` using [`graphtools`](https://github.com/KrishnaswamyLab/graphtools)
   * `G = gt.Graph(data)`
-4. Visualize data using [`PHATE`](https://www.github.com/KrishnaswamyLab/PHATE)
+4. Visualize data using [`PHATE`](https://github.com/KrishnaswamyLab/PHATE)
 5. Create the RES using the batch label for each cell
   * `RES = np.array([-1 if b == '1' else 1 for b in batch_idx])`
 6. Filter the RES to recover the EES
