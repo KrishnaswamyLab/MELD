@@ -40,3 +40,5 @@ def test_utils():
 
     clusters = meld.VertexFrequencyCluster().fit_predict(G=G, RES=labels, EES=EES)
     meld.utils.sort_clusters_by_meld_score(clusters, EES)
+
+    cmap = meld.utils.get_meld_cmap()
