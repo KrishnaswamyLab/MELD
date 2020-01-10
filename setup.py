@@ -19,7 +19,8 @@ test_requires = [
     'coverage',
     'coveralls',
     'scikit-learn',
-    'packaging'
+    'packaging',
+    'matplotlib'
 ]
 
 doc_requires = [
