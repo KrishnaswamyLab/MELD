@@ -10,7 +10,7 @@ import unittest
 from scipy import sparse
 
 from utils import make_batches, assert_warns_message, assert_raises_message
-from nose2.tools import assert_raises
+from nose.tools import assert_raises
 
 from packaging import version
 
