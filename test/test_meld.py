@@ -9,9 +9,8 @@ import unittest
 
 from scipy import sparse
 
-from sklearn.utils.testing import assert_warns_message, assert_raise_message, assert_raises
-
-from utils import make_batches
+from utils import make_batches, assert_warns_message, assert_raises_message
+from nose2.tools import assert_raises
 
 from packaging import version
 
@@ -29,7 +28,7 @@ def test_check_pygsp_graph():
     D = np.random.normal(0, 2, (10, 2))
     G = gt.Graph(D, use_pygsp=False)
     assert isinstance(meld.utils._check_pygsp_graph(G), pygsp.graphs.Graph)
-    assert_raise_message(
+    assert_raises_message(
         TypeError,
         "Input graph should be of type graphtools.base.BaseGraph. "
         "With graphtools, use the `use_pygsp=True` flag.",
@@ -70,7 +69,7 @@ def test_meld():
 
     # lap type TypeError
     lap_type = 'hello world'
-    assert_raise_message(
+    assert_raises_message(
         TypeError,
         "lap_type must be 'combinatorial'"
         " or 'normalized'. Got: '{}'".format(lap_type),
@@ -79,7 +78,7 @@ def test_meld():
 
     # RES wrong shape
     RES = np.ones([2, G.N + 100])
-    assert_raise_message(
+    assert_raises_message(
         ValueError,
         "Input data ({}) and input graph ({}) "
         "are not of the same size".format(RES.shape, G.N),
@@ -152,7 +151,7 @@ class TestCluster(unittest.TestCase):
             window_sizes=self.window_sizes)
         meld_op = meld.MELD()
         EES = meld_op.fit_transform(G=self.G, RES=RES)
-        assert_raise_message(ValueError,
+        assert_raises_message(ValueError,
         '`RES` and `EES` must have the same shape.'
         'Got RES: {} and EES: {}'.format(str(RES[:,1].shape), str(EES.shape)),
         vfc_op.fit_predict, G=self.G, RES=RES[:,1], EES=EES)
@@ -160,14 +159,14 @@ class TestCluster(unittest.TestCase):
 
     def test_transform_before_fit(self):
         # Transform before fit
-        assert_raise_message(ValueError,
+        assert_raises_message(ValueError,
                              'Estimator must be `fit` before running `transform`.',
                              meld.VertexFrequencyCluster().transform,
                              RES=self.labels, EES=self.EES)
 
     def test_predict_before_fit(self):
         # predict before fit
-        assert_raise_message(ValueError,
+        assert_raises_message(ValueError,
                              "Estimator is not fit. Call VertexFrequencyCluster.fit().",
                              meld.VertexFrequencyCluster().predict,
                              RES=self.labels, EES=self.EES)
@@ -177,35 +176,35 @@ class TestCluster(unittest.TestCase):
             window_sizes=self.window_sizes)
         vfc_op.fit(self.G)
         # predict before transform
-        assert_raise_message(ValueError,
+        assert_raises_message(ValueError,
                              "Estimator is not transformed. "
                              "Call VertexFrequencyCluster.transform().",
                              vfc_op.predict, RES=self.labels)
 
     def test_res_invalid(self):
         # RES not array-like
-        assert_raise_message(TypeError,
+        assert_raises_message(TypeError,
                              '`RES` must be array-like',
                              meld.VertexFrequencyCluster().fit_transform,
                              G=self.G, RES='invalid', EES=self.EES)
 
     def test_ees_invalid(self):
         # EES not array-like
-        assert_raise_message(TypeError,
+        assert_raises_message(TypeError,
                              '`EES` must be array-like',
                              meld.VertexFrequencyCluster().fit_transform,
                              G=self.G, RES=self.labels, EES='invalid')
 
     def test_res_wrong_length(self):
         # RES and n mismatch
-        assert_raise_message(ValueError,
+        assert_raises_message(ValueError,
                              'At least one axis of `RES` must be of length `N`.',
                              meld.VertexFrequencyCluster().fit_transform,
                              G=self.G, RES=np.ones(7), EES=self.EES)
 
     def test_ees_wrong_length(self):
         # EES and n mismatch
-        assert_raise_message(ValueError,
+        assert_raises_message(ValueError,
                              'At least one axis of `EES` must be of length `N`.',
                              meld.VertexFrequencyCluster().fit_transform,
                              G=self.G, RES=self.labels, EES=np.ones(7))

@@ -4,8 +4,6 @@ import numpy as np
 import graphtools as gt
 import meld
 
-from sklearn.utils.testing import assert_warns_message, assert_raise_message
-
 def make_batches(n_pts_per_cluster=5000):
     data = []
     labels = []
