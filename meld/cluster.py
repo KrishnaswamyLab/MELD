@@ -110,7 +110,7 @@ class VertexFrequencyCluster(BaseEstimator):
             Description
         """
         tic = time.time()
-        print('    Computing spectrogram for window')
+        #print('    Computing spectrogram for window')
         if len(RES.shape) == 1:
             RES = RES[:, None]
         if sparse.issparse(window):
@@ -119,7 +119,7 @@ class VertexFrequencyCluster(BaseEstimator):
         else:
             C = np.multiply(window, RES)
         C = preprocessing.normalize(self.eigenvectors.T @ C, axis=0)
-        print('     finished in {:.2f} seconds'.format(time.time() - tic))
+        #print('     finished in {:.2f} seconds'.format(time.time() - tic))
         return C.T
 
 
@@ -136,7 +136,7 @@ class VertexFrequencyCluster(BaseEstimator):
         #    curr_spectrogram = self._activate(curr_spectrogram)
         #    spectrogram += curr_spectrogram
         tic = time.time()
-        print('  Computing multiresolution spectrogram')
+        #print('  Computing multiresolution spectrogram')
         spectrogram = np.zeros((self.windows[0].shape[1],
                                      self.eigenvectors.shape[1]))
 
@@ -146,7 +146,7 @@ class VertexFrequencyCluster(BaseEstimator):
             curr_spectrogram = self._activate(curr_spectrogram)
             spectrogram += curr_spectrogram
 
-        print('   finished in {:.2f} seconds'.format(time.time() - tic))
+        #print('   finished in {:.2f} seconds'.format(time.time() - tic))
 
 
         return spectrogram
@@ -215,7 +215,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
         self.windows = []
         tic = time.time()
-        print('Building windows')
+        #print('Building windows')
         # Check if windows were generated using powers of 2
         if np.all(np.diff(np.log2(self.window_sizes)) == 1):
              self.windows = self._compute_windows()
@@ -223,16 +223,16 @@ class VertexFrequencyCluster(BaseEstimator):
             for t in self.window_sizes:
                 self.windows.append(self._compute_window(
                     self._basewindow, t=t).astype(float))
-        print(' finished in {:.2f} seconds'.format(time.time() - tic))
+        #print(' finished in {:.2f} seconds'.format(time.time() - tic))
 
         tic = time.time()
-        print('Computing Fourier basis')
+        #print('Computing Fourier basis')
         # Compute Fourier basis. This may take some time.
         G.compute_fourier_basis()
         self.eigenvectors = G.U
         self.N = G.N
         self.isfit = True
-        print(' finished in {:.2f} seconds'.format(time.time() - tic))
+        #print(' finished in {:.2f} seconds'.format(time.time() - tic))
 
         return self
 
@@ -306,17 +306,17 @@ class VertexFrequencyCluster(BaseEstimator):
         else:
             data = self.combined_spectrogram_ees
         tic = time.time()
-        print('Running PCA on the spectrogram')
+        #print('Running PCA on the spectrogram')
         data = decomposition.PCA(self.n_clusters).fit_transform(data)
-        print(' finished in {:.2f} seconds'.format(time.time()-tic))
+        #print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         tic = time.time()
-        print('Running clustering')
+        #print('Running clustering')
         self.labels_ = self._clusterobj.fit_predict(data)
 
         self.labels_ = utils.sort_clusters_by_meld_score(
             self.labels_, self.RES)
-        print(' finished in {:.2f} seconds'.format(time.time()-tic))
+        #print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         return self.labels_
 
