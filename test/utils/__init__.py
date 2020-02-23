@@ -2,6 +2,18 @@
 
 import warnings
 import numpy as np
+from nose.tools import assert_raises_regex, assert_warns_regex
+import re
+
+
+def assert_warns_message(expected_warning, expected_message, *args, **kwargs):
+    expected_regex = re.escape(expected_message)
+    return assert_warns_regex(expected_warning, expected_regex, *args, **kwargs)
+
+
+def assert_raises_message(expected_warning, expected_message, *args, **kwargs):
+    expected_regex = re.escape(expected_message)
+    return assert_raises_regex(expected_warning, expected_regex, *args, **kwargs)
 
 def reset_warnings():
     warnings.resetwarnings()
