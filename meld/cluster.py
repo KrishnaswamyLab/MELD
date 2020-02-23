@@ -10,6 +10,8 @@ import warnings
 
 import scprep
 
+import time
+
 from . import utils
 
 class VertexFrequencyCluster(BaseEstimator):
@@ -107,6 +109,8 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
+        tic = time.time()
+        print('    Computing spectrogram for window')
         if len(RES.shape) == 1:
             RES = RES[:, None]
         if sparse.issparse(window):
@@ -115,6 +119,7 @@ class VertexFrequencyCluster(BaseEstimator):
         else:
             C = np.multiply(window, RES)
         C = preprocessing.normalize(self.eigenvectors.T @ C, axis=0)
+        print('     finished in {:.2f} seconds'.format(time.time() - tic))
         return C.T
 
 
@@ -130,7 +135,8 @@ class VertexFrequencyCluster(BaseEstimator):
         #        RES, window)
         #    curr_spectrogram = self._activate(curr_spectrogram)
         #    spectrogram += curr_spectrogram
-
+        tic = time.time()
+        print('  Computing multiresolution spectrogram')
         spectrogram = np.zeros((self.windows[0].shape[1],
                                      self.eigenvectors.shape[1]))
 
@@ -140,6 +146,7 @@ class VertexFrequencyCluster(BaseEstimator):
             curr_spectrogram = self._activate(curr_spectrogram)
             spectrogram += curr_spectrogram
 
+        print('   finished in {:.2f} seconds'.format(time.time() - tic))
 
 
         return spectrogram
@@ -147,30 +154,41 @@ class VertexFrequencyCluster(BaseEstimator):
 
     def _compute_window(self, window, t=1):
         """_compute_window
-        apply operation to window function
+        These windows mask the signal (RES) to perform a Windowed Graph
+        Fourier Transform (WGFT) as described by Shuman et al.
+        (https://arxiv.org/abs/1307.5708).
 
-        Parameters
-        ----------
-        window : TYPE
-            Description
-        **kwargs
-            Description
-
-        Returns
-        -------
-        TYPE
-            Description
-
-        Raises
-        ------
-        TypeError
-            Description
+        This function is used when the power of windows is NOT diadic
         """
         if sparse.issparse(window):
             window = window ** t
         else:
             window = np.linalg.matrix_power(window, t)
         return preprocessing.normalize(window, 'l2', axis=0).T
+
+    def _power_matrix(self, a, n):
+        if sparse.issparse(a):
+            a = a ** n
+        else:
+            a = np.linalg.matrix_power(a, n)
+        return a
+
+    def _compute_windows(self):
+        """_compute_window
+        These windows mask the signal (RES) to perform a Windowed Graph
+        Fourier Transform (WGFT) as described by Shuman et al.
+        (https://arxiv.org/abs/1307.5708).
+
+        This function is used when the power of windows is diadic and
+        computes all windows efficiently.
+        """
+        windows = []
+        curr_window = self._basewindow
+        windows.append(preprocessing.normalize(curr_window, 'l2', axis=0).T)
+        for i in range(len(self.window_sizes) - 1):
+            curr_window = self._power_matrix(curr_window, 2)
+            windows.append(preprocessing.normalize(curr_window, 'l2', axis=0).T)
+        return windows
 
     def _combine_spectrogram_EES(self, spectrogram, EES):
         ''' Normalizes and concatenates the EES to the
@@ -196,15 +214,26 @@ class VertexFrequencyCluster(BaseEstimator):
             self._basewindow = sparse.csr_matrix(self._basewindow)
 
         self.windows = []
+        tic = time.time()
+        print('Building windows')
+        # Check if windows were generated using powers of 2
+        if np.all(np.diff(np.log2(self.window_sizes)) == 1):
+             self.windows = self._compute_windows()
+        else:
+            for t in self.window_sizes:
+                self.windows.append(self._compute_window(
+                    self._basewindow, t=t).astype(float))
+        print(' finished in {:.2f} seconds'.format(time.time() - tic))
 
-        for t in self.window_sizes:
-            self.windows.append(self._compute_window(
-                self._basewindow, t=t).astype(float))
+        tic = time.time()
+        print('Computing Fourier basis')
         # Compute Fourier basis. This may take some time.
         G.compute_fourier_basis()
         self.eigenvectors = G.U
         self.N = G.N
         self.isfit = True
+        print(' finished in {:.2f} seconds'.format(time.time() - tic))
+
         return self
 
     def transform(self, RES, EES=None, center=True):
@@ -276,11 +305,19 @@ class VertexFrequencyCluster(BaseEstimator):
             data = self.spectrogram
         else:
             data = self.combined_spectrogram_ees
+        tic = time.time()
+        print('Running PCA on the spectrogram')
         data = decomposition.PCA(self.n_clusters).fit_transform(data)
+        print(' finished in {:.2f} seconds'.format(time.time()-tic))
+
+        tic = time.time()
+        print('Running clustering')
         self.labels_ = self._clusterobj.fit_predict(data)
 
         self.labels_ = utils.sort_clusters_by_meld_score(
             self.labels_, self.RES)
+        print(' finished in {:.2f} seconds'.format(time.time()-tic))
+
         return self.labels_
 
     def fit_predict(self, G, RES, EES=None, **kwargs):

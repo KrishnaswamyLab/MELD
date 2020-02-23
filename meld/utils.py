@@ -30,10 +30,10 @@ def sort_clusters_by_meld_score(clusters, EES):
     return np.array([new_clust_map[cl] for cl in clusters])
 
 def get_meld_cmap():
-    '''Returns cmap used in publication for displaying EES. 
+    '''Returns cmap used in publication for displaying EES.
        Inspired by cmocean `balance` cmap'''
     base_colors = [[0.22107637, 0.53245276, 0.72819301, 1.],
-                   [0.2, 0.2, 0.2, 1],
+                   [0.7, 0.7, 0.7, 1],
                    [0.75013244, 0.3420382 , 0.22753009, 1.]]
 
     return scprep.plot.tools.create_colormap(base_colors)

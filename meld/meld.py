@@ -1,6 +1,7 @@
 # Copyright (C) 2019 Krishnaswamy Lab, Yale University
 
 import pygsp
+import numpy as np
 from sklearn.base import BaseEstimator
 import warnings
 
@@ -34,7 +35,7 @@ class MELD(BaseEstimator):
         Suppress warnings
     """
 
-    def __init__(self, beta=1, offset=0, order=2, solver='chebyshev', M=50,
+    def __init__(self, beta=1, offset=0, order=1, filter='heat', solver='chebyshev', M=50,
                  lap_type='combinatorial', suppress=False):
 
         self.suppress = suppress
@@ -45,6 +46,7 @@ class MELD(BaseEstimator):
         self.solver = solver
         self.M = M
         self.lap_type = lap_type
+        self.filter = filter
         self.filt = None
         self.EES = None
 
@@ -70,8 +72,15 @@ class MELD(BaseEstimator):
             G.compute_laplacian(self.lap_type)
 
         # Generate MELD filter
-        def filterfunc(x): return 1 / \
-            (1 + (self.beta * x - self.offset)**self.order)
+        if self.filter.lower() == 'laplacian':
+            def filterfunc(x):
+                return 1 / (1 + (self.beta * x - self.offset)**self.order)
+        elif self.filter.lower() == 'heat':
+            #Potential new filter
+            def filterfunc(x):
+                return np.exp((-self.beta * x) - self.offset)**self.order
+        else:
+            raise ValueError("""`self.filter` must be in ['laplacian', 'heat']""")
 
         G.estimate_lmax()
         self.filt = pygsp.filters.Filter(G, filterfunc)  # build filter
