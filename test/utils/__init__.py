@@ -15,6 +15,7 @@ def assert_raises_message(expected_warning, expected_message, *args, **kwargs):
     expected_regex = re.escape(expected_message)
     return assert_raises_regex(expected_warning, expected_regex, *args, **kwargs)
 
+
 def reset_warnings():
     warnings.resetwarnings()
     warnings.simplefilter("error")
@@ -23,20 +24,29 @@ def reset_warnings():
 
 def ignore_numpy_warning():
     warnings.filterwarnings(
-        "ignore", category=PendingDeprecationWarning,
+        "ignore",
+        category=PendingDeprecationWarning,
         message="the matrix subclass is not the recommended way to represent "
-        "matrices or deal with linear algebra ")
+        "matrices or deal with linear algebra ",
+    )
+
 
 reset_warnings()
+
 
 def make_batches(n_pts_per_cluster=5000):
     data = []
     labels = []
 
-    make = lambda x, y, s: np.concatenate([np.random.normal(
-        x, s, (n_pts_per_cluster, 1)), np.random.normal(y, s, (n_pts_per_cluster, 1))], axis=1)
+    make = lambda x, y, s: np.concatenate(
+        [
+            np.random.normal(x, s, (n_pts_per_cluster, 1)),
+            np.random.normal(y, s, (n_pts_per_cluster, 1)),
+        ],
+        axis=1,
+    )
     # batch 1
-    d = [make(0, 0, .1), make(1, 1, .1), make(0, 1, .1)]
+    d = [make(0, 0, 0.1), make(1, 1, 0.1), make(0, 1, 0.1)]
     l = np.zeros(len(d) * n_pts_per_cluster)
     d = np.concatenate(d, axis=0)
 
@@ -44,7 +54,7 @@ def make_batches(n_pts_per_cluster=5000):
     labels.append(l)
 
     # batch 2
-    d = [make(1, -1, .1), make(2, 0, .1), make(-2, -1, .1)]
+    d = [make(1, -1, 0.1), make(2, 0, 0.1), make(-2, -1, 0.1)]
     l = np.ones(len(d) * n_pts_per_cluster)
     d = np.concatenate(d, axis=0)
 

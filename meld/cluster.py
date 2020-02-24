@@ -14,6 +14,7 @@ import time
 
 from . import utils
 
+
 class VertexFrequencyCluster(BaseEstimator):
     """Performs Vertex Frequency clustering for data given a
        raw experimental signal and enhanced experimental signal.
@@ -46,8 +47,16 @@ class VertexFrequencyCluster(BaseEstimator):
 
     """
 
-    def __init__(self, n_clusters=10, window_count=9, window_sizes=None,
-                 sparse=False, suppress=False, random_state=None, **kwargs):
+    def __init__(
+        self,
+        n_clusters=10,
+        window_count=9,
+        window_sizes=None,
+        sparse=False,
+        suppress=False,
+        random_state=None,
+        **kwargs
+    ):
         self.suppress = suppress
         self.sparse = sparse
         self._basewindow = None
@@ -68,8 +77,9 @@ class VertexFrequencyCluster(BaseEstimator):
         self.EES = None
         self.RES = None
         self._sklearn_params = kwargs
-        self._clusterobj = KMeans(n_clusters=n_clusters,
-                                  random_state=random_state, **kwargs)
+        self._clusterobj = KMeans(
+            n_clusters=n_clusters, random_state=random_state, **kwargs
+        )
 
     def _activate(self, x, alpha=1):
         """Activate spectrograms for clustering
@@ -110,7 +120,7 @@ class VertexFrequencyCluster(BaseEstimator):
             Description
         """
         tic = time.time()
-        #print('    Computing spectrogram for window')
+        # print('    Computing spectrogram for window')
         if len(RES.shape) == 1:
             RES = RES[:, None]
         if sparse.issparse(window):
@@ -119,38 +129,33 @@ class VertexFrequencyCluster(BaseEstimator):
         else:
             C = np.multiply(window, RES)
         C = preprocessing.normalize(self.eigenvectors.T @ C, axis=0)
-        #print('     finished in {:.2f} seconds'.format(time.time() - tic))
+        # print('     finished in {:.2f} seconds'.format(time.time() - tic))
         return C.T
 
-
     def _compute_multiresolution_spectrogram(self, RES):
-        ''' Compute multiresolution spectrogram by repeatedly calling
-            _compute_spectrogram '''
+        """ Compute multiresolution spectrogram by repeatedly calling
+            _compute_spectrogram """
 
-        #spectrogram = np.zeros((self.windows[0].shape[1],
+        # spectrogram = np.zeros((self.windows[0].shape[1],
         #                        self.eigenvectors.shape[1]))
 
-        #for window in self.windows:
+        # for window in self.windows:
         #    curr_spectrogram = self._compute_spectrogram(
         #        RES, window)
         #    curr_spectrogram = self._activate(curr_spectrogram)
         #    spectrogram += curr_spectrogram
         tic = time.time()
-        #print('  Computing multiresolution spectrogram')
-        spectrogram = np.zeros((self.windows[0].shape[1],
-                                     self.eigenvectors.shape[1]))
+        # print('  Computing multiresolution spectrogram')
+        spectrogram = np.zeros((self.windows[0].shape[1], self.eigenvectors.shape[1]))
 
         for window in self.windows:
-            curr_spectrogram = self._compute_spectrogram(
-                RES=RES, window=window)
+            curr_spectrogram = self._compute_spectrogram(RES=RES, window=window)
             curr_spectrogram = self._activate(curr_spectrogram)
             spectrogram += curr_spectrogram
 
-        #print('   finished in {:.2f} seconds'.format(time.time() - tic))
-
+        # print('   finished in {:.2f} seconds'.format(time.time() - tic))
 
         return spectrogram
-
 
     def _compute_window(self, window, t=1):
         """_compute_window
@@ -164,7 +169,7 @@ class VertexFrequencyCluster(BaseEstimator):
             window = window ** t
         else:
             window = np.linalg.matrix_power(window, t)
-        return preprocessing.normalize(window, 'l2', axis=0).T
+        return preprocessing.normalize(window, "l2", axis=0).T
 
     def _power_matrix(self, a, n):
         if sparse.issparse(a):
@@ -184,15 +189,15 @@ class VertexFrequencyCluster(BaseEstimator):
         """
         windows = []
         curr_window = self._basewindow
-        windows.append(preprocessing.normalize(curr_window, 'l2', axis=0).T)
+        windows.append(preprocessing.normalize(curr_window, "l2", axis=0).T)
         for i in range(len(self.window_sizes) - 1):
             curr_window = self._power_matrix(curr_window, 2)
-            windows.append(preprocessing.normalize(curr_window, 'l2', axis=0).T)
+            windows.append(preprocessing.normalize(curr_window, "l2", axis=0).T)
         return windows
 
     def _combine_spectrogram_EES(self, spectrogram, EES):
-        ''' Normalizes and concatenates the EES to the
-            spectrogram for clustering'''
+        """ Normalizes and concatenates the EES to the
+            spectrogram for clustering"""
 
         spectrogram_n = spectrogram / np.linalg.norm(spectrogram)
 
@@ -202,7 +207,7 @@ class VertexFrequencyCluster(BaseEstimator):
         return data_nu
 
     def fit(self, G):
-        '''Sets eigenvectors and windows.'''
+        """Sets eigenvectors and windows."""
 
         G = utils._check_pygsp_graph(G)
 
@@ -215,55 +220,57 @@ class VertexFrequencyCluster(BaseEstimator):
 
         self.windows = []
         tic = time.time()
-        #print('Building windows')
+        # print('Building windows')
         # Check if windows were generated using powers of 2
         if np.all(np.diff(np.log2(self.window_sizes)) == 1):
-             self.windows = self._compute_windows()
+            self.windows = self._compute_windows()
         else:
             for t in self.window_sizes:
-                self.windows.append(self._compute_window(
-                    self._basewindow, t=t).astype(float))
-        #print(' finished in {:.2f} seconds'.format(time.time() - tic))
+                self.windows.append(
+                    self._compute_window(self._basewindow, t=t).astype(float)
+                )
+        # print(' finished in {:.2f} seconds'.format(time.time() - tic))
 
         tic = time.time()
-        #print('Computing Fourier basis')
+        # print('Computing Fourier basis')
         # Compute Fourier basis. This may take some time.
         G.compute_fourier_basis()
         self.eigenvectors = G.U
         self.N = G.N
         self.isfit = True
-        #print(' finished in {:.2f} seconds'.format(time.time() - tic))
+        # print(' finished in {:.2f} seconds'.format(time.time() - tic))
 
         return self
 
     def transform(self, RES, EES=None, center=True):
-        '''Calculates the spectrogram of the graph using the RES'''
+        """Calculates the spectrogram of the graph using the RES"""
         self.RES = RES
         self.EES = EES
         if not self.isfit:
-            raise ValueError(
-                'Estimator must be `fit` before running `transform`.')
+            raise ValueError("Estimator must be `fit` before running `transform`.")
 
         if not isinstance(self.RES, (list, tuple, np.ndarray, pd.Series, pd.DataFrame)):
-            raise TypeError('`RES` must be array-like.')
+            raise TypeError("`RES` must be array-like.")
 
-        if EES is not None and not isinstance(self.EES, (list, tuple, np.ndarray, pd.Series)):
-            raise TypeError('`EES` must be array-like.')
+        if EES is not None and not isinstance(
+            self.EES, (list, tuple, np.ndarray, pd.Series)
+        ):
+            raise TypeError("`EES` must be array-like.")
 
         # Checking shape of RES
         self.RES = np.array(self.RES)
         if not self.N in self.RES.shape:
-            raise ValueError('At least one axis of `RES` must be'
-                             ' of length `N`.')
+            raise ValueError("At least one axis of `RES` must be" " of length `N`.")
 
         # Checking shape of EES
         if EES is not None:
-            if  self.N not in self.EES.shape:
-                raise ValueError('At least one axis of `EES` must be'
-                                 ' of length `N`.')
+            if self.N not in self.EES.shape:
+                raise ValueError("At least one axis of `EES` must be" " of length `N`.")
             if EES.shape != RES.shape:
-                raise ValueError('`RES` and `EES` must have the same shape.'
-                'Got RES: {} and EES: {}'.format(str(RES.shape), str(EES.shape)))
+                raise ValueError(
+                    "`RES` and `EES` must have the same shape."
+                    "Got RES: {} and EES: {}".format(str(RES.shape), str(EES.shape))
+                )
             self.EES = np.array(self.EES)
 
         # Subtract the mean from the RES
@@ -284,7 +291,8 @@ class VertexFrequencyCluster(BaseEstimator):
         # Appending the EES to the spectrogram
         if self.EES is not None:
             self.combined_spectrogram_ees = self._combine_spectrogram_EES(
-                spectrogram=self.spectrogram, EES=self.EES)
+                spectrogram=self.spectrogram, EES=self.EES
+            )
 
         return self.spectrogram
 
@@ -293,30 +301,32 @@ class VertexFrequencyCluster(BaseEstimator):
         return self.transform(RES, EES, **kwargs)
 
     def predict(self, **kwargs):
-        '''Runs KMeans on the spectrogram.'''
+        """Runs KMeans on the spectrogram."""
         if not self.isfit:
-            raise ValueError("Estimator is not fit. "
-                             "Call VertexFrequencyCluster.fit().")
+            raise ValueError(
+                "Estimator is not fit. " "Call VertexFrequencyCluster.fit()."
+            )
         if self.spectrogram is None:
-            raise ValueError("Estimator is not transformed. "
-                             "Call VertexFrequencyCluster.transform().")
+            raise ValueError(
+                "Estimator is not transformed. "
+                "Call VertexFrequencyCluster.transform()."
+            )
 
         if self.combined_spectrogram_ees is None:
             data = self.spectrogram
         else:
             data = self.combined_spectrogram_ees
         tic = time.time()
-        #print('Running PCA on the spectrogram')
+        # print('Running PCA on the spectrogram')
         data = decomposition.PCA(self.n_clusters).fit_transform(data)
-        #print(' finished in {:.2f} seconds'.format(time.time()-tic))
+        # print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         tic = time.time()
-        #print('Running clustering')
+        # print('Running clustering')
         self.labels_ = self._clusterobj.fit_predict(data)
 
-        self.labels_ = utils.sort_clusters_by_meld_score(
-            self.labels_, self.RES)
-        #print(' finished in {:.2f} seconds'.format(time.time()-tic))
+        self.labels_ = utils.sort_clusters_by_meld_score(self.labels_, self.RES)
+        # print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         return self.labels_
 
@@ -325,7 +335,7 @@ class VertexFrequencyCluster(BaseEstimator):
         return self.predict()
 
     def set_kmeans_params(self, **kwargs):
-        k = kwargs.pop('k', False)
+        k = kwargs.pop("k", False)
         if k:
             self.n_clusters = k
         self._sklearn_params = kwargs

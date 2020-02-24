@@ -35,8 +35,17 @@ class MELD(BaseEstimator):
         Suppress warnings
     """
 
-    def __init__(self, beta=1, offset=0, order=1, filter='heat', solver='chebyshev', M=50,
-                 lap_type='combinatorial', suppress=False):
+    def __init__(
+        self,
+        beta=1,
+        offset=0,
+        order=1,
+        filter="heat",
+        solver="chebyshev",
+        M=50,
+        lap_type="combinatorial",
+        suppress=False,
+    ):
 
         self.suppress = suppress
 
@@ -62,23 +71,29 @@ class MELD(BaseEstimator):
         # Make sure that the input graph is a valid pygsp graph
         G = utils._check_pygsp_graph(G)
 
-        if self.lap_type not in ('combinatorial', 'normalized'):
-            raise TypeError("lap_type must be 'combinatorial'"
-                            " or 'normalized'. Got: '{}'".format(self.lap_type))
+        if self.lap_type not in ("combinatorial", "normalized"):
+            raise TypeError(
+                "lap_type must be 'combinatorial'"
+                " or 'normalized'. Got: '{}'".format(self.lap_type)
+            )
         if G.lap_type != self.lap_type:
             warnings.warn(
                 "Changing lap_type may require recomputing the Laplacian",
-                RuntimeWarning)
+                RuntimeWarning,
+            )
             G.compute_laplacian(self.lap_type)
 
         # Generate MELD filter
-        if self.filter.lower() == 'laplacian':
+        if self.filter.lower() == "laplacian":
+
             def filterfunc(x):
-                return 1 / (1 + (self.beta * x - self.offset)**self.order)
-        elif self.filter.lower() == 'heat':
-            #Potential new filter
+                return 1 / (1 + (self.beta * x - self.offset) ** self.order)
+
+        elif self.filter.lower() == "heat":
+            # Potential new filter
             def filterfunc(x):
-                return np.exp((-self.beta * x) - self.offset)**self.order
+                return np.exp((-self.beta * x) - self.offset) ** self.order
+
         else:
             raise ValueError("""`self.filter` must be in ['laplacian', 'heat']""")
 
@@ -106,10 +121,10 @@ class MELD(BaseEstimator):
         # Checking shape of RES and G match
         if RES.shape[0] != G.N:
             raise ValueError(
-                    "Input data ({}) and input graph ({}) "
-                    "are not of the same size".format(RES.shape, G.N))
-        RES_nu = self.filt.filter(RES, method=self.solver,
-                                order=self.M)  # apply filter
+                "Input data ({}) and input graph ({}) "
+                "are not of the same size".format(RES.shape, G.N)
+            )
+        RES_nu = self.filt.filter(RES, method=self.solver, order=self.M)  # apply filter
 
         return RES_nu
 
