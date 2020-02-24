@@ -8,6 +8,8 @@ dist: xenial
 cache:
 - pip
 - apt
+before_install:
+- pip install git+https://github.com/KrishnaswamyLab/graphtools@feature/estimator
 install:
 - pip install -r requirements.txt
 - pip install .
