@@ -107,7 +107,7 @@ class MELD(GraphEstimator):
                 self._reset_filter()
                 setattr(self, p, params[p])
                 del params[p]
-        super().set_params(params)
+        super().set_params(**params)
 
     def transform(self, RES):
         """Filters a signal `RES` over the data graph.
