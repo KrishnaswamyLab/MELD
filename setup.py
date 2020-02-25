@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 install_requires = [
     "numpy>=1.14.0",
     "scipy>=1.1.0",
-    "graphtools>=0.1.8.1",
+    "graphtools>=1.5.0",
     "pandas>=0.25",
     "scprep>=1.0",
     "pygsp",
@@ -29,9 +29,6 @@ doc_requires = [
     "autodocsumm",
 ]
 
-if sys.version_info[:2] < (3, 5):
-    raise RuntimeError("Python version >=3.5 required.")
-
 version_py = os.path.join(os.path.dirname(__file__), "meld", "version.py")
 version = open(version_py).read().strip().split("=")[-1].replace('"', "").strip()
 
@@ -45,6 +42,7 @@ setup(
     author_email="daniel.burkhardt@yale.edu",
     packages=find_packages(),
     license="Dual License - See LICENSE file",
+    python_requires=">=3.5",
     install_requires=install_requires,
     extras_require={"test": test_requires, "doc": doc_requires},
     test_suite="nose2.collector.collector",
