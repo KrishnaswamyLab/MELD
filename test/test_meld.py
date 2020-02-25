@@ -13,6 +13,7 @@ from nose.tools import assert_raises
 
 from packaging import version
 
+
 def test_check_pygsp_graph():
     # _check_pygsp_graph
     D = np.random.normal(0, 2, (10, 2))
@@ -23,7 +24,8 @@ def test_check_pygsp_graph():
         "Input graph should be of type graphtools.base.BaseGraph. "
         "With graphtools, use the `use_pygsp=True` flag.",
         meld.utils._check_pygsp_graph,
-        G='hello world')
+        G="hello world",
+    )
 
 
 def test_mnn():
@@ -32,8 +34,8 @@ def test_mnn():
     EES = meld_op.fit_transform(data, labels, sample_idx=labels)
     meld.VertexFrequencyCluster().fit_transform(G=meld_op.graph, RES=labels, EES=EES)
 
-@parameterized([('heat',),
-                ('laplacian',)])
+
+@parameterized([("heat",), ("laplacian",)])
 def test_meld(filter):
     # MELD operator
     # Numerical accuracy
@@ -48,29 +50,31 @@ def test_meld(filter):
     D = np.random.normal(0, 2, (1000, 2))
     RES = np.random.binomial(1, norm(D[:, 0]), 1000)
 
-    meld_op = meld.MELD(verbose=0, knn=20, decay=10, thresh=0, anisotropy=0, filter=filter)
+    meld_op = meld.MELD(
+        verbose=0, knn=20, decay=10, thresh=0, anisotropy=0, filter=filter
+    )
     B = meld_op.fit_transform(D, RES)
 
     if version.parse(np.__version__) == version.parse("1.17"):
         np.testing.assert_allclose(np.sum(B), 519)
     else:
         np.testing.assert_allclose(np.sum(B), 532)
-    
+
     # check changing filter params resets filter
-    meld_op.set_params(beta = meld_op.beta + 1)
+    meld_op.set_params(beta=meld_op.beta + 1)
     assert meld_op.filt is None
     assert meld_op.EES is None
-    
+
     meld_op.fit_transform(D, RES)
     assert meld_op.filt is not None
     assert meld_op.EES is not None
-    
+
     # check changing graph params resets filter
-    meld_op.set_params(knn = meld_op.knn + 1)
+    meld_op.set_params(knn=meld_op.knn + 1)
     assert meld_op.graph is None
     assert meld_op.filt is None
     assert meld_op.EES is None
-    
+
 
 def test_meld_invalid_lap_type():
     D = np.random.normal(0, 2, (1000, 2))
