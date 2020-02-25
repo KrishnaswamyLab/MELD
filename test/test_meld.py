@@ -14,6 +14,18 @@ from nose.tools import assert_raises
 
 from packaging import version
 
+def test_check_pygsp_graph():
+    # _check_pygsp_graph
+    D = np.random.normal(0, 2, (10, 2))
+    G = gt.Graph(D, use_pygsp=False)
+    assert isinstance(meld.utils._check_pygsp_graph(G), pygsp.graphs.Graph)
+    assert_raise_message(
+        TypeError,
+        "Input graph should be of type graphtools.base.BaseGraph. "
+        "With graphtools, use the `use_pygsp=True` flag.",
+        meld.utils._check_pygsp_graph,
+        G='hello world')
+
 
 def test_mnn():
     data, labels = make_batches(n_pts_per_cluster=250)
