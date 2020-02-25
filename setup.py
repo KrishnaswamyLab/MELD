@@ -21,6 +21,7 @@ test_requires = [
     "scikit-learn",
     "packaging",
     "matplotlib",
+    "parameterized",
 ]
 
 doc_requires = [
