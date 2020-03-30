@@ -3,24 +3,15 @@
 import numpy as np
 import graphtools as gt
 import meld
-from meld import version
 import pygsp
 import unittest
 
 from scipy import sparse
-
+from parameterized import parameterized
 from utils import make_batches, assert_warns_message, assert_raises_message
 from nose.tools import assert_raises
 
 from packaging import version
-
-
-def test_mnn():
-    data, labels = make_batches(n_pts_per_cluster=250)
-    G = gt.Graph(data, sample_idx=labels, use_pygsp=True)
-    meld_op = meld.MELD()
-    EES = meld_op.fit_transform(G, labels)
-    meld.VertexFrequencyCluster().fit_transform(G=G, RES=labels, EES=EES)
 
 
 def test_check_pygsp_graph():
@@ -37,7 +28,15 @@ def test_check_pygsp_graph():
     )
 
 
-def test_meld():
+def test_mnn():
+    data, labels = make_batches(n_pts_per_cluster=250)
+    meld_op = meld.MELD(verbose=0)
+    EES = meld_op.fit_transform(data, labels, sample_idx=labels)
+    meld.VertexFrequencyCluster().fit_transform(G=meld_op.graph, RES=labels, EES=EES)
+
+
+@parameterized([("heat",), ("laplacian",)])
+def test_meld(filter):
     # MELD operator
     # Numerical accuracy
     np.random.seed(42)
@@ -50,52 +49,57 @@ def test_meld():
 
     D = np.random.normal(0, 2, (1000, 2))
     RES = np.random.binomial(1, norm(D[:, 0]), 1000)
-    G = gt.Graph(D, knn=20, decay=10, use_pygsp=True)
 
-    meld_op = meld.MELD()
-    B = meld_op.fit_transform(G, RES)
-
-    if version.parse(np.__version__) == version.parse("1.17"):
-        np.testing.assert_allclose(np.sum(B), 519)
-    else:
-        np.testing.assert_allclose(np.sum(B), 532)
-
-    meld_op = meld.MELD()
-    B = meld_op.fit_transform(gt.Graph(D, knn=20, decay=10, use_pygsp=False), RES)
+    meld_op = meld.MELD(
+        verbose=0, knn=20, decay=10, thresh=0, anisotropy=0, filter=filter
+    )
+    B = meld_op.fit_transform(D, RES)
 
     if version.parse(np.__version__) == version.parse("1.17"):
         np.testing.assert_allclose(np.sum(B), 519)
     else:
         np.testing.assert_allclose(np.sum(B), 532)
 
+    # check changing filter params resets filter
+    meld_op.set_params(beta=meld_op.beta + 1)
+    assert meld_op.filt is None
+    assert meld_op.EES is None
+
+    meld_op.fit_transform(D, RES)
+    assert meld_op.filt is not None
+    assert meld_op.EES is not None
+
+    # check changing graph params resets filter
+    meld_op.set_params(knn=meld_op.knn + 1)
+    assert meld_op.graph is None
+    assert meld_op.filt is None
+    assert meld_op.EES is None
+
+
+def test_meld_invalid_lap_type():
+    D = np.random.normal(0, 2, (1000, 2))
     # lap type TypeError
     lap_type = "hello world"
-    assert_raises_message(
-        TypeError,
-        "lap_type must be 'combinatorial'"
-        " or 'normalized'. Got: '{}'".format(lap_type),
-        meld.MELD(lap_type=lap_type).fit,
-        G=G,
-    )
+    with assert_raises_message(
+        ValueError,
+        "lap_type value {} not recognized. "
+        "Choose from ['combinatorial', 'normalized']".format(lap_type),
+    ):
+        meld.MELD(verbose=0, lap_type=lap_type).fit(D)
 
+
+def test_meld_res_wrong_shape():
+    D = np.random.normal(0, 2, (1000, 2))
     # RES wrong shape
-    RES = np.ones([2, G.N + 100])
-    assert_raises_message(
+    RES = np.ones([2, D.shape[0] + 100])
+    with assert_raises_message(
         ValueError,
         "Input data ({}) and input graph ({}) "
-        "are not of the same size".format(RES.shape, G.N),
-        meld_op.fit_transform,
-        RES=RES,
-        G=G,
-    )
-
-    # lap reconversion warning
-    assert_warns_message(
-        RuntimeWarning,
-        "Changing lap_type may require recomputing the Laplacian",
-        meld_op.fit,
-        G=gt.Graph(D, knn=20, decay=10, use_pygsp=True, lap_type="normalized"),
-    )
+        "are not of the same size".format(RES.shape, D.shape[0]),
+    ):
+        meld.MELD(verbose=0).fit_transform(
+            X=D, RES=RES,
+        )
 
 
 class TestCluster(unittest.TestCase):
@@ -104,10 +108,12 @@ class TestCluster(unittest.TestCase):
         # VertexFrequencyCluster
         # Custom window sizes
         self.window_sizes = np.array([2, 4, 8, 24])
-        data, self.labels = make_batches(n_pts_per_cluster=100)
-        self.G = gt.Graph(data, sample_idx=self.labels, use_pygsp=True)
-        meld_op = meld.MELD()
-        self.EES = meld_op.fit_transform(G=self.G, RES=self.labels)
+        self.data, self.labels = make_batches(n_pts_per_cluster=100)
+        meld_op = meld.MELD(verbose=0)
+        self.EES = meld_op.fit_transform(
+            self.data, sample_idx=self.labels, RES=self.labels
+        )
+        self.G = meld_op.graph
 
     def test_cluster(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
@@ -137,16 +143,16 @@ class TestCluster(unittest.TestCase):
     def test_2d(self):
         RES = np.array([self.labels, self.labels]).T
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
-        meld_op = meld.MELD()
-        EES = meld_op.fit_transform(G=self.G, RES=RES)
+        meld_op = meld.MELD(verbose=0,)
+        EES = meld_op.fit_transform(self.data, RES=RES)
         clusters = vfc_op.fit_predict(self.G, RES=RES, EES=EES)
         assert len(clusters) == len(self.labels)
 
     def test_RES_EES_shape(self):
         RES = np.array([self.labels, self.labels]).T
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
-        meld_op = meld.MELD()
-        EES = meld_op.fit_transform(G=self.G, RES=RES)
+        meld_op = meld.MELD(verbose=0,)
+        EES = meld_op.fit_transform(self.data, RES=RES)
         assert_raises_message(
             ValueError,
             "`RES` and `EES` must have the same shape."
