@@ -278,3 +278,7 @@ class TestCluster(unittest.TestCase):
         vfc_op = meld.VertexFrequencyCluster()
         vfc_op.set_kmeans_params(k=2)
         assert vfc_op._clusterobj.n_clusters == 2
+
+    def test_power_sparse(self):
+        vfc_op = meld.VertexFrequencyCluster()
+        vfc_op._power_matrix(self.G.diff_op, 2)
