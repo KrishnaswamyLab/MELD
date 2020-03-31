@@ -1,4 +1,4 @@
-# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+# Copyright (C) 2020 Krishnaswamy Lab, Yale University
 
 import numpy as np
 import pandas as pd
@@ -77,9 +77,7 @@ class VertexFrequencyCluster(BaseEstimator):
         self.EES = None
         self.RES = None
         self._sklearn_params = kwargs
-        self._clusterobj = KMeans(
-            n_clusters=n_clusters, random_state=random_state, **kwargs
-        )
+        self._clusterobj = KMeans(**self._sklearn_params)
 
     def _activate(self, x, alpha=1):
         """Activate spectrograms for clustering
@@ -312,6 +310,8 @@ class VertexFrequencyCluster(BaseEstimator):
                 "Call VertexFrequencyCluster.transform()."
             )
 
+        self._clusterobj = KMeans(**kwargs)
+
         if self.combined_spectrogram_ees is None:
             data = self.spectrogram
         else:
@@ -325,7 +325,7 @@ class VertexFrequencyCluster(BaseEstimator):
         # print('Running clustering')
         self.labels_ = self._clusterobj.fit_predict(data)
 
-        self.labels_ = utils.sort_clusters_by_meld_score(self.labels_, self.RES)
+        self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.RES)
         # print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         return self.labels_

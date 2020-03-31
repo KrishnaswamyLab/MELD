@@ -1,4 +1,4 @@
-# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+# Copyright (C) 2020 Krishnaswamy Lab, Yale University
 
 import os
 import sys
@@ -11,6 +11,7 @@ install_requires = [
     "pandas>=0.25",
     "scprep>=1.0",
     "pygsp",
+    "sklearn"
 ]
 
 test_requires = [
@@ -21,8 +22,8 @@ test_requires = [
     "scikit-learn",
     "packaging",
     "matplotlib",
-    "parameterized",
-]
+    "parameterized"
+    ]
 
 doc_requires = [
     "sphinx<=1.8.5",

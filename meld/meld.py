@@ -1,8 +1,11 @@
-# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+# Copyright (C) 2020 Krishnaswamy Lab, Yale University
 
 import numpy as np
+import pandas as pd
 import pygsp
 import graphtools
+import scprep.utils
+
 
 from graphtools.estimator import GraphEstimator, attribute
 from functools import partial
@@ -30,6 +33,8 @@ class MELD(GraphEstimator):
         Order of chebyshev approximation to use.
     lap_type : ('combinatorial', 'normalized'), Default: 'combinatorial'
         The kind of Laplacian to calculate
+    normalize : boolean, optional, Default: True
+        If True, the RES is column normalized to sum to 1
     """
 
     # parameters
@@ -70,6 +75,7 @@ class MELD(GraphEstimator):
         solver="chebyshev",
         chebyshev_order=50,
         lap_type="combinatorial",
+        normalize=True,
         anisotropy=1,
         n_landmark=None,
         **kwargs
@@ -82,6 +88,7 @@ class MELD(GraphEstimator):
         self.chebyshev_order = chebyshev_order
         self.lap_type = lap_type
         self.filter = filter
+        self.normalize = normalize
 
         kwargs["use_pygsp"] = True
         super().__init__(anisotropy=anisotropy, n_landmark=n_landmark, **kwargs)
@@ -109,6 +116,36 @@ class MELD(GraphEstimator):
                 del params[p]
         super().set_params(**params)
 
+    def _RES_from_sample_labels(self):
+        '''
+        Helper function to take an array of non-numerics and produce an RES.
+        '''
+        self.sample_labels_ = self.RES
+        self.samples = np.unique(self.RES)
+        self._RES_cls = pd.DataFrame
+
+        if self.samples.shape[0] == 1:
+            # Only have one sample label (i.e. [A, A, A, A])
+            self.RES = pd.DataFrame(np.ones(self.sample_labels_.shape[0]),
+                                    columns=self.samples)
+        elif self.samples.shape[0] == 2:
+            # When there's two samples (i.e. [A, A, B, B])
+            # LabelBinarizer doesn't work nicely with only two labels
+            self.RES = pd.DataFrame([self.sample_labels_ == self.samples[0],
+                            self.sample_labels_ == self.samples[1]],
+                            dtype=int,
+                            index=self.samples).T
+
+        else:
+            # We have more than two samples, use label binarizer.
+            import sklearn
+            self._LB = sklearn.preprocessing.LabelBinarizer()
+            RES = self._LB.fit_transform(self.sample_labels_)
+            self.RES = pd.DataFrame(RES, columns=self._LB.classes_)
+        self._RES_columns = self.RES.columns
+
+        return scprep.utils.toarray(self.RES)
+
     def transform(self, RES):
         """Filters a signal `RES` over the data graph.
 
@@ -127,6 +164,23 @@ class MELD(GraphEstimator):
                 "Input data ({}) and input graph ({}) "
                 "are not of the same size".format(RES.shape, self.graph.N)
             )
+
+        self._RES_cls = type(RES)
+        self._RES_index = None
+        self._RES_columns = None
+        if isinstance(RES, pd.DataFrame):
+            self._RES_index, self._RES_columns = RES.index, RES.columns
+
+        self.RES = scprep.utils.toarray(RES)
+
+        # Need to handle multiple cases for how the RES is passed
+        # Option 1, a categorical / series / something like ['A', 'A', 'B', 'B']
+        if not np.issubdtype(self.RES.dtype, np.number):
+            # If we have non-numeric RES, then we should create an RES from it
+            self.RES = self._RES_from_sample_labels()
+
+        if self.normalize:
+            self.RES = self.RES / self.RES.sum(axis=0)
 
         self.graph.estimate_lmax()
 
@@ -153,9 +207,19 @@ class MELD(GraphEstimator):
         self.filt = pygsp.filters.Filter(self.graph, filterfunc)
 
         # apply filter
-        EES = self.filt.filter(RES, method=self.solver, order=self.chebyshev_order)
+        self.EES = self.filt.filter(self.RES, method=self.solver, order=self.chebyshev_order)
 
-        return EES
+        if self._RES_cls != np.ndarray:
+            self.RES = self._RES_cls(self.RES)
+            self.EES = self._RES_cls(self.EES)
+
+        if isinstance(self.RES, pd.DataFrame):
+            if self._RES_index is not None:
+                self.RES.index, self.EES.index = self._RES_index, self._RES_index
+            if self._RES_columns is not None:
+                self.RES.columns, self.EES.columns = self._RES_columns, self._RES_columns
+
+        return self.EES
 
     def fit_transform(self, X, RES, **kwargs):
         """Builds the MELD filter over a graph built on data `X` and filters a signal `RES`.

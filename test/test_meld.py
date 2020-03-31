@@ -1,6 +1,7 @@
-# Copyright (C) 2019 Krishnaswamy Lab, Yale University
+# Copyright (C) 2020 Krishnaswamy Lab, Yale University
 
 import numpy as np
+import pandas as pd
 import graphtools as gt
 import meld
 import pygsp
@@ -56,9 +57,19 @@ def test_meld(filter):
     B = meld_op.fit_transform(D, RES)
 
     if version.parse(np.__version__) == version.parse("1.17"):
-        np.testing.assert_allclose(np.sum(B), 519)
+        if meld_op.filter == 'heat':
+            np.testing.assert_allclose(np.median(B), 0.001195,
+            atol=1e-6)
+        else:
+            np.testing.assert_allclose(np.median(B), 0.001328,
+            atol=1e-6)
     else:
-        np.testing.assert_allclose(np.sum(B), 532)
+        if meld_op.filter == 'heat':
+            np.testing.assert_allclose(np.median(B), 0.001195,
+            atol=1e-6)
+        else:
+            np.testing.assert_allclose(np.median(B), 0.001328,
+            atol=1e-6)
 
     # check changing filter params resets filter
     meld_op.set_params(beta=meld_op.beta + 1)
@@ -89,9 +100,9 @@ def test_meld_invalid_lap_type():
 
 
 def test_meld_res_wrong_shape():
-    D = np.random.normal(0, 2, (1000, 2))
+    D = np.random.normal(0, 2, (100, 2))
     # RES wrong shape
-    RES = np.ones([2, D.shape[0] + 100])
+    RES = np.ones([101, 2])
     with assert_raises_message(
         ValueError,
         "Input data ({}) and input graph ({}) "
@@ -101,6 +112,30 @@ def test_meld_res_wrong_shape():
             X=D, RES=RES,
         )
 
+def test_meld_res_dataframe():
+    D = np.random.normal(0, 2, (100, 2))
+    # RES wrong shape
+    index = pd.Index(['cell_{}'.format(i) for i in range(100)])
+    columns = pd.Index(['A'])
+    RES = pd.DataFrame(np.ones([100, 1]),
+            index=index,
+            columns=columns)
+    EES = meld.MELD(verbose=0).fit_transform(
+        X=D, RES=RES,
+    )
+    assert np.all(EES.index == index)
+    assert np.all(EES.columns == columns)
+
+def test_meld_res_non_numeric():
+    D = np.random.normal(size=(100,2))
+    RES = np.random.choice(['A'], size=100)
+    meld.MELD().fit_transform(D, RES)
+
+    RES = np.random.choice(['A', 'B'], size=100)
+    meld.MELD().fit_transform(D, RES)
+
+    RES = np.random.choice(['A', 'B', 'C'], size=100)
+    meld.MELD().fit_transform(D, RES)
 
 class TestCluster(unittest.TestCase):
     @classmethod
