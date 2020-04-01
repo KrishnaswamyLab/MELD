@@ -52,24 +52,21 @@ def test_meld(filter):
     RES = np.random.binomial(1, norm(D[:, 0]), 1000)
 
     meld_op = meld.MELD(
-        verbose=0, knn=20, decay=10, thresh=0, anisotropy=0, filter=filter
+        verbose=0, knn=20, decay=10, thresh=0, anisotropy=0, filter=filter,
+        normalize=False
     )
     B = meld_op.fit_transform(D, RES)
 
     if version.parse(np.__version__) == version.parse("1.17"):
-        if meld_op.filter == 'heat':
-            np.testing.assert_allclose(np.median(B), 0.001195,
-            atol=1e-6)
+        if meld_op.filter == 'laplacian':
+            np.testing.assert_allclose(np.sum(B), 519)
         else:
-            np.testing.assert_allclose(np.median(B), 0.001328,
-            atol=1e-6)
+            np.testing.assert_allclose(np.sum(B), 519)
     else:
-        if meld_op.filter == 'heat':
-            np.testing.assert_allclose(np.median(B), 0.001195,
-            atol=1e-6)
+        if meld_op.filter == 'laplacian':
+            np.testing.assert_allclose(np.sum(B), 532)
         else:
-            np.testing.assert_allclose(np.median(B), 0.001328,
-            atol=1e-6)
+            np.testing.assert_allclose(np.sum(B), 532)
 
     # check changing filter params resets filter
     meld_op.set_params(beta=meld_op.beta + 1)
