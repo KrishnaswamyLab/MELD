@@ -18,10 +18,10 @@ class MELD(GraphEstimator):
     ----------
     beta : int
         Amount of smoothing to apply.
-    offset: int, optional, Default: 0
+    offset: float, optional, Default: 0
         Amount to shift the MELD filter in the eigenvalue spectrum.
         Recommend using an eigenvalue from the graph based on the
-        spectral distribution.
+        spectral distribution. Should be in interval [0,1]
     order: int, optional, Default: 1
         Falloff and smoothness of the filter.
         High order leads to square-like filters.
@@ -189,15 +189,14 @@ class MELD(GraphEstimator):
 
             def filterfunc(x):
                 return 1 / (
-                    1 + (self.beta * x / self.graph.lmax - self.offset) ** self.order
+                    1 + (self.beta * (x / self.graph.lmax - self.offset)) ** self.order
                 )
 
         elif self.filter.lower() == "heat":
 
             def filterfunc(x):
                 return (
-                    np.exp((-self.beta * x / self.graph.lmax) - self.offset)
-                    ** self.order
+                    np.exp(-self.beta * (x / self.graph.lmax - self.offset) ** self.order)
                 )
 
         else:
