@@ -52,7 +52,8 @@ def test_meld(filter):
     RES = np.random.binomial(1, norm(D[:, 0]), 1000)
 
     meld_op = meld.MELD(
-        verbose=0, knn=20, decay=10, thresh=0, anisotropy=0, filter=filter,
+        verbose=0, knn=20, decay=10, thresh=0, anisotropy=0,
+        filter=filter, solver="exact",
         normalize=False
     )
     B = meld_op.fit_transform(D, RES)
