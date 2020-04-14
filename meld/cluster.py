@@ -77,7 +77,7 @@ class VertexFrequencyCluster(BaseEstimator):
         self.EES = None
         self.RES = None
         self._sklearn_params = kwargs
-        self._clusterobj = KMeans(**self._sklearn_params)
+        self._clusterobj = KMeans(n_clusters=self.n_clusters, **self._sklearn_params)
 
     def _activate(self, x, alpha=1):
         """Activate spectrograms for clustering
@@ -309,8 +309,6 @@ class VertexFrequencyCluster(BaseEstimator):
                 "Estimator is not transformed. "
                 "Call VertexFrequencyCluster.transform()."
             )
-
-        self._clusterobj = KMeans(**kwargs)
 
         if self.combined_spectrogram_ees is None:
             data = self.spectrogram
