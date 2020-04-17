@@ -6,7 +6,7 @@ import pygsp
 import graphtools
 import scprep.utils
 
-
+from . import utils
 from graphtools.estimator import GraphEstimator, attribute
 from functools import partial
 
@@ -208,6 +208,10 @@ class MELD(GraphEstimator):
 
         # apply filter
         self.EES = self.filt.filter(self.RES, method=self.solver, order=self.chebyshev_order)
+
+        # normalize if only two samaples
+        if self.EES.shape[1] == 2:
+            self.EES = utils.normalize_EES_within_replicate(self.EES)
 
         if self._RES_cls != np.ndarray:
             self.RES = self._RES_cls(self.RES)
