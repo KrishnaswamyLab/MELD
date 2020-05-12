@@ -23,6 +23,9 @@ class VertexFrequencyCluster(BaseEstimator):
     ----------
     n_clusters : int, optional, default: 10
         The number of clusters to form.
+    EES_bias : float, optional, default: 1
+        A normalization term that biases clustering towards the
+        EES (higher values) or towards the spectrogram (lower values)
     window_count : int, optional, default: 9
         Number of windows to use if window_sizes = None
     window_sizes : None, optional, default: None
@@ -50,6 +53,7 @@ class VertexFrequencyCluster(BaseEstimator):
     def __init__(
         self,
         n_clusters=10,
+        EES_bias=1,
         window_count=9,
         window_sizes=None,
         sparse=False,
@@ -67,6 +71,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
         self.window_count = np.min(self.window_sizes.shape)
         self.n_clusters = n_clusters
+        self.EES_bias = EES_bias
         self.window = None
         self.eigenvectors = None
         self.N = None
@@ -77,7 +82,6 @@ class VertexFrequencyCluster(BaseEstimator):
         self.EES = None
         self.RES = None
         self._sklearn_params = kwargs
-        self._clusterobj = KMeans(n_clusters=self.n_clusters, **self._sklearn_params)
 
     def _activate(self, x, alpha=1):
         """Activate spectrograms for clustering
@@ -200,14 +204,14 @@ class VertexFrequencyCluster(BaseEstimator):
         spectrogram_n = spectrogram / np.linalg.norm(spectrogram)
 
         ees_n = EES / np.linalg.norm(EES, ord=2, axis=0)
-
+        ees_n = ees_n * self.EES_bias
         data_nu = np.c_[spectrogram_n, ees_n]
         return data_nu
 
     def fit(self, G):
         """Sets eigenvectors and windows."""
 
-        G = utils._check_pygsp_graph(G)
+        self.graph = utils._check_pygsp_graph(G)
 
         if self._basewindow is None:
             self._basewindow = G.diff_op
@@ -232,9 +236,9 @@ class VertexFrequencyCluster(BaseEstimator):
         tic = time.time()
         # print('Computing Fourier basis')
         # Compute Fourier basis. This may take some time.
-        G.compute_fourier_basis()
-        self.eigenvectors = G.U
-        self.N = G.N
+        self.graph.compute_fourier_basis()
+        self.eigenvectors = self.graph.U
+        self.N = self.graph.N
         self.isfit = True
         # print(' finished in {:.2f} seconds'.format(time.time() - tic))
 
@@ -298,8 +302,13 @@ class VertexFrequencyCluster(BaseEstimator):
         self.fit(G, **kwargs)
         return self.transform(RES, EES, **kwargs)
 
-    def predict(self, **kwargs):
+    def predict(self, n_clusters=None, **kwargs):
         """Runs KMeans on the spectrogram."""
+
+        if n_clusters is not None:
+            self.n_clusters = n_clusters
+        self._clusterobj = KMeans(n_clusters=self.n_clusters, **kwargs)
+
         if not self.isfit:
             raise ValueError(
                 "Estimator is not fit. " "Call VertexFrequencyCluster.fit()."

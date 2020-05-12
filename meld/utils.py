@@ -7,7 +7,6 @@ import pygsp
 import scprep
 import sklearn
 
-
 def _check_pygsp_graph(G):
     if isinstance(G, graphtools.base.BaseGraph):
         if not isinstance(G, pygsp.graphs.Graph):

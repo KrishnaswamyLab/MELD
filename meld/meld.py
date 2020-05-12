@@ -160,6 +160,8 @@ class MELD(GraphEstimator):
         EES : ndarray [n, p]
             Enhanced Experimental Signal (smoothed RES)
         """
+        self.graph = utils._check_pygsp_graph(self.graph)
+
         if RES.shape[0] != self.graph.N:
             raise ValueError(
                 "Input data ({}) and input graph ({}) "
@@ -210,7 +212,7 @@ class MELD(GraphEstimator):
         self.EES = self.filt.filter(self.RES, method=self.solver, order=self.chebyshev_order)
 
         # normalize if only two samaples
-        if self.EES.shape[1] == 2:
+        if len(self.EES.shape) > 1 and self.EES.shape[1] == 2:
             self.EES = utils.normalize_EES_within_replicate(self.EES)
 
         if self._RES_cls != np.ndarray:
