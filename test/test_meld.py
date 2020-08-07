@@ -173,6 +173,11 @@ class TestCluster(unittest.TestCase):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
         spectrogram = vfc_op.fit_predict(self.G, RES=self.labels, EES=None)
 
+    def test_predit_setting_n_cluster(self):
+        vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
+        spectrogram = vfc_op.fit_transform(self.G, RES=self.labels, EES=None)
+        clusters = vfc_op.predict(n_clusters=2)
+
     def test_2d(self):
         RES = np.array([self.labels, self.labels]).T
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
