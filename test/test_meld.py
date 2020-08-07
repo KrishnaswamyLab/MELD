@@ -211,9 +211,7 @@ class TestCluster(unittest.TestCase):
         assert_raises_message(
             ValueError,
             "Estimator is not fit. Call VertexFrequencyCluster.fit().",
-            meld.VertexFrequencyCluster().predict,
-            RES=self.labels,
-            EES=self.EES,
+            meld.VertexFrequencyCluster().predict
         )
 
     def test_predict_before_transform(self):
@@ -223,8 +221,7 @@ class TestCluster(unittest.TestCase):
         assert_raises_message(
             ValueError,
             "Estimator is not transformed. " "Call VertexFrequencyCluster.transform().",
-            vfc_op.predict,
-            RES=self.labels,
+            vfc_op.predict
         )
 
     def test_res_invalid(self):
@@ -274,8 +271,8 @@ class TestCluster(unittest.TestCase):
     def test_set_params(self):
         # KMeans params
         vfc_op = meld.VertexFrequencyCluster()
-        vfc_op.set_kmeans_params(k=2)
-        assert vfc_op._clusterobj.n_clusters == 2
+        vfc_op.set_kmeans_params(n_clusters=2)
+        assert vfc_op.n_clusters == 2
 
     def test_power_sparse(self):
         vfc_op = meld.VertexFrequencyCluster()

@@ -307,7 +307,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
         if n_clusters is not None:
             self.n_clusters = n_clusters
-        self._clusterobj = KMeans(n_clusters=self.n_clusters, **kwargs)
+        self._clusterobj = KMeans(n_clusters=self.n_clusters, **kwargs, **self._sklearn_params)
 
         if not self.isfit:
             raise ValueError(
@@ -342,8 +342,7 @@ class VertexFrequencyCluster(BaseEstimator):
         return self.predict()
 
     def set_kmeans_params(self, **kwargs):
-        k = kwargs.pop("k", False)
+        k = kwargs.pop("n_clusters", False)
         if k:
             self.n_clusters = k
         self._sklearn_params = kwargs
-        self._clusterobj.set_params(n_clusters=self.n_clusters, **kwargs)
