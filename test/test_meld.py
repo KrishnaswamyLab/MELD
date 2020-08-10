@@ -58,10 +58,16 @@ def test_meld(filter):
     )
     B = meld_op.fit_transform(D, RES)
 
-    if meld_op.filter == 'laplacian':
-        np.testing.assert_allclose(np.sum(B), 519)
+    if version.parse("1.17") <= version.parse(np.__version__) < version.parse("1.18"):
+        if meld_op.filter == 'laplacian':
+            np.testing.assert_allclose(np.sum(B), 519)
+        else:
+            np.testing.assert_allclose(np.sum(B), 519)
     else:
-        np.testing.assert_allclose(np.sum(B), 519)
+        if meld_op.filter == 'laplacian':
+            np.testing.assert_allclose(np.sum(B), 532)
+        else:
+            np.testing.assert_allclose(np.sum(B), 532)
 
     # check changing filter params resets filter
     meld_op.set_params(beta=meld_op.beta + 1)
