@@ -1,9 +1,9 @@
 language: python
 python:
-- '3.5'
-- '3.6'
-- 3.7-dev
-sudo: required
+  - '3.5'
+  - '3.6'
+  - '3.7'
+  - '3.8'
 dist: xenial
 cache:
 - pip
@@ -12,6 +12,7 @@ install:
 - pip install -r requirements.txt
 - pip install .
 script:
+- python -c "import meld"
 - pip install .[test]
 - python setup.py test
 - pip install -r doc/source/requirements.txt
