@@ -26,7 +26,7 @@ def test_benchmarker_EES():
     benchmarker.calculate_EES(data=data) #implicitly tests graph
     EES_mse = benchmarker.calculate_mse(benchmarker.EES)
 
-    np.testing.assert_allclose(0.001865193704468321, EES_mse)
+    np.testing.assert_allclose(4.962076e-05, EES_mse)
 
 def test_set_params():
     benchmarker = meld.Benchmarker()
@@ -50,7 +50,7 @@ def test_calc_pdf_before_fit_phate():
 def test_calc_EES_without_graph_or_data():
     benchmarker = meld.Benchmarker()
     with assert_raises_message(
-        ValueError,
+        NameError,
         "Must pass `data` unless graph has already been fit"
     ):
         benchmarker.calculate_EES()

@@ -192,7 +192,7 @@ class Benchmarker(object):
             if data is not None:
                 self.fit_graph(data)
             else:
-                raise NameError('Must pass `data` unless graph has already been fit')
+                raise NameError("Must pass `data` unless graph has already been fit")
 
         self.meld_op = meld.MELD(**kwargs, verbose=False).fit(self.graph)
         self.EES = self.meld_op.transform(self.RES)
