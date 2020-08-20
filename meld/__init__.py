@@ -3,3 +3,4 @@
 from .meld import MELD
 from .cluster import VertexFrequencyCluster
 from .version import __version__
+from .benchmark import Benchmarker
