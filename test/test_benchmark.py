@@ -20,20 +20,22 @@ def test_benchmarker_EES():
     benchmarker = meld.Benchmarker(seed=0)
 
     benchmarker.fit_phate(data, verbose=False)
-    # Test mean-center works
-    benchmarker.set_phate(benchmarker.data_phate + 1)
 
     benchmarker.generate_ground_truth_pdf()
-    # Test with data_phate passed
-    benchmarker.generate_ground_truth_pdf(
-        benchmarker.data_phate
-    )
 
     benchmarker.generate_RES()
     benchmarker.calculate_EES(data=data) #implicitly tests graph
     EES_mse = benchmarker.calculate_mse(benchmarker.EES)
 
     np.testing.assert_allclose(4.962076e-05, EES_mse)
+
+    # Test mean-center works
+    benchmarker.set_phate(benchmarker.data_phate + 1)
+
+    # Test with data_phate passed
+    benchmarker.generate_ground_truth_pdf(
+        benchmarker.data_phate
+    )
 
 def test_benchmarker_set_params():
     benchmarker = meld.Benchmarker()
