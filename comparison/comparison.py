@@ -188,6 +188,23 @@ class Benchmarker(object):
         self.graph_knn = gt.Graph(data, n_pca=100,  kernel_symm=None, use_pygsp=True,
                                 random_state=self.seed, **kwargs)
 
+    def fit_phate(self, data, **kwargs):
+        try:
+            import phate
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError('PHATE must be installed. Install via pip `pip install --user phate`')
+
+        self.set_phate(phate.PHATE(n_components=3, **kwargs).fit_transform(data))
+        return self.data_phate
+
+    def set_phate(self, data_phate):
+        if not data_phate.shape[1] == 3:
+            raise ValueError('data_phate must have 3 dimensions')
+        if not np.isclose(data_phate.mean(), 0):
+            # data_phate must be mean-centered
+            data_phate = scipy.stats.zscore(data_phate, axis=0)
+        self.data_phate = data_phate
+
     def generate_ground_truth_pdf(self, data_phate=None):
         '''Takes a set of PHATE coordinates over a set of points and creates an underlying
         ground truth pdf over the points as a convex combination of the input phate coords.
@@ -195,13 +212,9 @@ class Benchmarker(object):
         np.random.seed(self.seed)
 
         if data_phate is not None:
-            self.data_phate = data_phate
-
-        if not data_phate.shape[1] == 3:
-            raise ValueError('data_phate must have 3 dimensions')
-        if not np.isclose(data_phate.mean(), 0):
-            # data_phate must be mean-centered
-            data_phate = scipy.stats.zscore(data_phate, axis=0)
+            self.set_phate(data_phate)
+        elif self.data_phate is None:
+            raise ValueError('data_phate must be set prior to running generate_ground_truth_pdf().')
 
         # Create an array of values that sums to 1
         data_simplex = np.sort(np.random.uniform(size=(2)))
