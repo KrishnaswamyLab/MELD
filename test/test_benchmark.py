@@ -20,7 +20,14 @@ def test_benchmarker_EES():
     benchmarker = meld.Benchmarker(seed=0)
 
     benchmarker.fit_phate(data, verbose=False)
+    # Test mean-center works
+    benchmarker.set_phate(benchmarker.data_phate + 1)
+
     benchmarker.generate_ground_truth_pdf()
+    # Test with data_phate passed
+    benchmarker.generate_ground_truth_pdf(
+        benchmarker.data_phate
+    )
 
     benchmarker.generate_RES()
     benchmarker.calculate_EES(data=data) #implicitly tests graph
@@ -28,7 +35,7 @@ def test_benchmarker_EES():
 
     np.testing.assert_allclose(4.962076e-05, EES_mse)
 
-def test_set_params():
+def test_benchmarker_set_params():
     benchmarker = meld.Benchmarker()
     benchmarker.set_seed(0)
 
@@ -38,7 +45,7 @@ def test_set_params():
     ):
         benchmarker.set_phate(np.random.normal(0, 2, (10, 2)))
 
-def test_calc_pdf_before_fit_phate():
+def test_benchmarker_calc_pdf_before_fit_phate():
     benchmarker = meld.Benchmarker()
 
     with assert_raises_message(
@@ -47,7 +54,7 @@ def test_calc_pdf_before_fit_phate():
     ):
         benchmarker.generate_ground_truth_pdf()
 
-def test_calc_EES_without_graph_or_data():
+def test_benchmarker_calc_EES_without_graph_or_data():
     benchmarker = meld.Benchmarker()
     with assert_raises_message(
         NameError,

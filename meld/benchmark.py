@@ -142,13 +142,13 @@ class Benchmarker(object):
 
         Parameters
         ----------
-        data_phate : type
-            Description of parameter `data_phate`.
+        data_phate : array, shape=[n_samples, 3]
+            PHATE embedding for input data.
 
         Returns
         -------
-        type
-            Description of returned object.
+        pdf
+            Ground truth conditional probability of the sample given the data.
 
         """
 
