@@ -22,11 +22,12 @@ test_requires = [
     "scikit-learn",
     "packaging",
     "matplotlib",
-    "parameterized"
+    "parameterized",
+    "phate"
     ]
 
 doc_requires = [
-    "sphinx<=1.8.5",
+    "sphinx",
     "sphinxcontrib-napoleon",
     "autodocsumm",
 ]
