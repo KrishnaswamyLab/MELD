@@ -207,10 +207,6 @@ class TestCluster(unittest.TestCase):
         ):
             vfc_op._compute_spectrogram(self.data, window)
 
-    def test_compute_spectrogram_wrong_size_signal(self):
-        vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
-        vfc_op._compute_spectrogram(self.sample_indicators['expt'], window=2)
-
 
     def test_cluster_no_EES(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
