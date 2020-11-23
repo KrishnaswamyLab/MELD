@@ -276,7 +276,7 @@ class TestCluster(unittest.TestCase):
             vfc_op.predict
         )
 
-    def test_sample_indicator invalid(self):
+    def test_sample_indicator_invalid(self):
         # sample_indicator not array-like
         assert_raises_message(
             TypeError,
@@ -297,7 +297,7 @@ class TestCluster(unittest.TestCase):
             likelihood="invalid",
         )
 
-    def test_sample_indicator wrong_length(self):
+    def test_sample_indicator_wrong_length(self):
         # sample_indicator and n mismatch
         assert_raises_message(
             ValueError,
