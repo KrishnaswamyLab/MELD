@@ -102,7 +102,7 @@ def test_meld_invalid_lap_type():
 
 def test_meld_labels_wrong_shape():
     data = np.random.normal(0, 2, (100, 2))
-    # RES wrong shape
+    # sample_indicator wrong shape
     sample_labels = np.ones([101, 2], dtype=str)
     with assert_raises_message(
         ValueError,
@@ -208,7 +208,7 @@ class TestCluster(unittest.TestCase):
             vfc_op._compute_spectrogram(self.data, window)
 
 
-    def test_cluster_no_EES(self):
+    def test_cluster_no_likelihood(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
         spectrogram = vfc_op.fit_predict(
                     self.G,
@@ -232,7 +232,7 @@ class TestCluster(unittest.TestCase):
 
         assert len(clusters) == len(self.sample_labels)
 
-    def test_RES_EES_shape(self):
+    def test_sample_indicator_likelihood_shape(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
         meld_op = meld.MELD(verbose=0,)
         assert_raises_message(
@@ -276,8 +276,8 @@ class TestCluster(unittest.TestCase):
             vfc_op.predict
         )
 
-    def test_res_invalid(self):
-        # RES not array-like
+    def test_sample_indicator invalid(self):
+        # sample_indicator not array-like
         assert_raises_message(
             TypeError,
             "`sample_indicator` must be array-like",
@@ -286,8 +286,8 @@ class TestCluster(unittest.TestCase):
             sample_indicator="invalid",
         )
 
-    def test_ees_invalid(self):
-        # EES not array-like
+    def test_likelihood_invalid(self):
+        # likelihood not array-like
         assert_raises_message(
             TypeError,
             "`likelihood` must be array-like",
@@ -297,8 +297,8 @@ class TestCluster(unittest.TestCase):
             likelihood="invalid",
         )
 
-    def test_res_wrong_length(self):
-        # RES and n mismatch
+    def test_sample_indicator wrong_length(self):
+        # sample_indicator and n mismatch
         assert_raises_message(
             ValueError,
             "At least one axis of `sample_indicator` must be of length `N`.",
@@ -308,8 +308,8 @@ class TestCluster(unittest.TestCase):
             likelihood=self.likelihoods['expt'],
         )
 
-    def test_ees_wrong_length(self):
-        # EES and n mismatch
+    def test_likelihood_wrong_length(self):
+        # likelihood and n mismatch
         assert_raises_message(
             ValueError,
             "At least one axis of `likelihood` must be of length `N`.",
