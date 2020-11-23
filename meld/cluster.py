@@ -126,7 +126,7 @@ class VertexFrequencyCluster(BaseEstimator):
         if len(sample_indicator.shape) == 1:
             sample_indicator = np.array(sample_indicator)
         else:
-            raise ValueError('sample_indicator must be 1-dimensional')
+            raise ValueError('sample_indicator must be 1-dimensional. Got shape: {}'.format(sample_indicator.shape))
         if sparse.issparse(window):
             # the next computation becomes dense - better to make dense now
             C = window.multiply(sample_indicator).toarray()
