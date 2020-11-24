@@ -160,6 +160,25 @@ def test_meld_labels_non_numeric():
     sample_densities = meld_op.fit_transform(data, sample_labels)
     assert np.all(sample_densities.columns == ['A', 'B', 'C'])
 
+def test_sample_labels_2d():
+    labels = np.ones((10,2))
+    with assert_raises_message(
+        ValueError,
+        "sample_labels must be a single column. Got"    "shape={}".format(labels.shape)
+        ):
+        meld.MELD()._create_sample_indicators(labels)
+
+def test_sample_labels_one_sample():
+    data = np.random.normal(size=(100,2))
+    labels = np.ones(100)
+    with assert_raises_message(
+        ValueError,
+        "Found only one unqiue sample label. Cannot estimate density "
+        "of a single sample."
+        ):
+        meld.MELD().fit_transform(data, labels)
+
+
 class TestCluster(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -227,8 +246,15 @@ class TestCluster(unittest.TestCase):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
         clusters = vfc_op.fit_predict(
                     self.G,
-                    sample_indicator=self.sample_indicators['expt'],
-                    likelihood=self.likelihoods['expt'])
+                    sample_indicator=self.sample_indicators,
+                    likelihood=self.likelihoods)
+
+        assert len(clusters) == len(self.sample_labels)
+    def test_predict_no_likelihood(self):
+        vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
+        clusters = vfc_op.fit_predict(
+                    self.G,
+                    sample_indicator=self.sample_indicators['expt'])
 
         assert len(clusters) == len(self.sample_labels)
 

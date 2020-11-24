@@ -334,7 +334,10 @@ class VertexFrequencyCluster(BaseEstimator):
         # print('Running clustering')
         self.labels_ = self._clusterobj.fit_predict(data)
 
-        self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.likelihood)
+        if self.likelihood is not None:
+            self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.likelihood)
+        else:
+            self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.sample_indicator)
         # print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         return self.labels_
