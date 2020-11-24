@@ -13,7 +13,7 @@ from nose.tools import assert_raises
 
 from packaging import version
 
-def test_benchmarker_density():
+def test_benchmarker_EES():
     np.random.seed(0)
     data = np.random.normal(0, 2, (200, 200))
 
@@ -23,11 +23,11 @@ def test_benchmarker_density():
 
     benchmarker.generate_ground_truth_pdf()
 
-    benchmarker.generate_sample_labels()
-    benchmarker.calculate_MELD_likelihood(data=data) #implicitly tests graph
-    sample_likelihoods_mse = benchmarker.calculate_mse(benchmarker.sample_likelihoods)
+    benchmarker.generate_RES()
+    benchmarker.calculate_EES(data=data) #implicitly tests graph
+    EES_mse = benchmarker.calculate_mse(benchmarker.EES)
 
-    np.testing.assert_allclose(4.962076e-05, sample_likelihoods_mse)
+    np.testing.assert_allclose(4.962076e-05, EES_mse)
 
     # Test mean-center works
     benchmarker.set_phate(benchmarker.data_phate + 1)
@@ -56,10 +56,10 @@ def test_benchmarker_calc_pdf_before_fit_phate():
     ):
         benchmarker.generate_ground_truth_pdf()
 
-def test_benchmarker_calc_MELD_without_graph_or_data():
+def test_benchmarker_calc_EES_without_graph_or_data():
     benchmarker = meld.Benchmarker()
     with assert_raises_message(
         NameError,
         "Must pass `data` unless graph has already been fit"
     ):
-        benchmarker.calculate_MELD_likelihood()
+        benchmarker.calculate_EES()

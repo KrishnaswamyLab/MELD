@@ -1,7 +1,6 @@
 # Copyright (C) 2020 Krishnaswamy Lab, Yale University
 
 import numpy as np
-import pandas as pd
 import graphtools.base
 import graphtools
 import pygsp
@@ -32,16 +31,15 @@ def get_meld_cmap():
     return scprep.plot.tools.create_colormap(base_colors)
 
 
-def normalize_densities(sample_densities):
+def normalize_EES_within_replicate(EES):
     '''
-    Takes a 2-d array of sample densities from the same replicate and
-    normalizes the row-sum to 1.
+    Takes a two-column EES representing matched experimental and control
+    pairs from the same replicate and normalizes the EES row-sum to 1.
     '''
-    if isinstance(sample_densities, pd.DataFrame):
-        index, columns = sample_densities.index, sample_densities.columns
-
-    norm_densities = sklearn.preprocessing.normalize(sample_densities, norm='l1')
-
-    if isinstance(sample_densities, pd.DataFrame):
-        norm_densities = pd.DataFrame(norm_densities, index=index, columns=columns)
-    return norm_densities
+    if EES.shape[1] != 2:
+        raise ValueError(
+            "It is currently only possible to normalize two samaples"
+            "from a matched experimental and control pair. As such,"
+            "EES.shape[1] must equal 2. Got {}".format(EES.shape[1])
+        )
+    return sklearn.preprocessing.normalize(EES, norm='l1')

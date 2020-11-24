@@ -2,11 +2,11 @@
 
 import numpy as np
 import pandas as pd
+import pygsp
 import graphtools
 import scprep.utils
 
 from . import utils
-from . import filter
 from graphtools.estimator import GraphEstimator, attribute
 from functools import partial
 
@@ -26,7 +26,7 @@ class MELD(GraphEstimator):
     order: int, optional, Default: 1
         Falloff and smoothness of the filter.
         High order leads to square-like filters.
-    solver : string, optional, Default: 'chebyshev'
+    Solver : string, optional, Default: 'chebyshev'
         Method to solve convex problem.
         'chebyshev' uses a chebyshev polynomial approximation of the corresponding filter
         'exact' uses the eigenvalue solution to the problem
@@ -34,8 +34,8 @@ class MELD(GraphEstimator):
         Order of chebyshev approximation to use.
     lap_type : ('combinatorial', 'normalized'), Default: 'combinatorial'
         The kind of Laplacian to calculate
-    sample_normalize : boolean, optional, Default: True
-        If True, the sample indicator vectors are column normalized to sum to 1
+    normalize : boolean, optional, Default: True
+        If True, the RES is column normalized to sum to 1
     """
 
     # parameters
@@ -65,9 +65,7 @@ class MELD(GraphEstimator):
 
     # stored attributes
     filt = attribute("filt")
-    sample_densities = attribute(
-        "sample_densities",
-        doc="Density associated with each sample")
+    EES = attribute("EES", doc="Enhanced Experimental Signal (smoothed RES)")
 
     def __init__(
         self,
@@ -78,7 +76,7 @@ class MELD(GraphEstimator):
         solver="chebyshev",
         chebyshev_order=50,
         lap_type="combinatorial",
-        sample_normalize=True,
+        normalize=True,
         anisotropy=1,
         n_landmark=None,
         **kwargs
@@ -91,7 +89,7 @@ class MELD(GraphEstimator):
         self.chebyshev_order = chebyshev_order
         self.lap_type = lap_type
         self.filter = filter
-        self.sample_normalize = sample_normalize
+        self.normalize = normalize
 
         kwargs["use_pygsp"] = True
         super().__init__(anisotropy=anisotropy, n_landmark=n_landmark, **kwargs)
@@ -101,7 +99,7 @@ class MELD(GraphEstimator):
 
     def _reset_filter(self):
         self.filt = None
-        self.sample_densities = None
+        self.EES = None
 
     def set_params(self, **params):
         for p in [
@@ -119,110 +117,118 @@ class MELD(GraphEstimator):
                 del params[p]
         super().set_params(**params)
 
-    def _create_sample_indicators(self, sample_labels):
+    def _RES_from_sample_labels(self):
         '''
-        Helper function to take an array-like of non-numerics and produce a collection of sample indicator vectors.
+        Helper function to take an array of non-numerics and produce an RES.
         '''
+        self.sample_labels_ = self.RES
+        self.samples = np.unique(self.RES)
+        self._RES_cls = pd.DataFrame
 
-        self.sample_labels_ = sample_labels
-        self.samples = np.unique(sample_labels)
-
-
-        try:
-            labels = sample_labels.values
-        except AttributeError:
-            labels = self.sample_labels_
-
-        if len(labels.shape) > 1:
-            # If you have a 2D array
-            if labels.shape[1] == 1:
-                # If it's just a column-vector, reshape it
-                labels = labels.reshape(-1)
-            else:
-                # If its got multiple-columns, raise Error
-                raise ValueError(
-                    "sample_labels must be a single column. Got"    "shape={}".format(labels.shape)
-                    )
-
-
-        if self.samples.shape[0] == 2:
+        if self.samples.shape[0] == 1:
+            # Only have one sample label (i.e. [A, A, A, A])
+            self.RES = pd.DataFrame(np.ones(self.sample_labels_.shape[0]),
+                                    columns=self.samples)
+        elif self.samples.shape[0] == 2:
             # When there's two samples (i.e. [A, A, B, B])
             # LabelBinarizer doesn't work nicely with only two labels
-            # This creates a two-column dataframe using the sample labels
-            df = pd.DataFrame(
-                [
-                labels == self.samples[0],
-                labels == self.samples[1]
-                ],
-                columns=self._labels_index).astype(int)
-            df.index = self.samples
-
-            self.sample_indicators = df.T
+            self.RES = pd.DataFrame([self.sample_labels_ == self.samples[0],
+                            self.sample_labels_ == self.samples[1]],
+                            dtype=int,
+                            index=self.samples).T
 
         else:
             # We have more than two samples, use label binarizer.
             import sklearn
             self._LB = sklearn.preprocessing.LabelBinarizer()
-            sample_indicators = self._LB.fit_transform(self.sample_labels_)
-            self.sample_indicators = pd.DataFrame(sample_indicators, columns=self._LB.classes_)
+            RES = self._LB.fit_transform(self.sample_labels_)
+            self.RES = pd.DataFrame(RES, columns=self._LB.classes_)
+        self._RES_columns = self.RES.columns
 
-        return self.sample_indicators
+        return scprep.utils.toarray(self.RES)
 
-    def transform(self, sample_labels):
-        """Filters a collection of sample_indicators over the data graph.
+    def transform(self, RES):
+        """Filters a signal `RES` over the data graph.
 
         Parameters
         ----------
-        sample_indicators : ndarray [n, p]
-            1- or 2-dimensional sample indicator array to filter.
+        RES : ndarray [n, p]
+            1- or 2-dimensional Raw Experimental Signal array to filter.
 
         Returns
         -------
-        sample_densities: ndarray [n, p]
-            A density estimate for each sample.
+        EES : ndarray [n, p]
+            Enhanced Experimental Signal (smoothed RES)
         """
         self.graph = utils._check_pygsp_graph(self.graph)
-        self._sample_labels = sample_labels
 
-        if sample_labels.shape[0] != self.graph.N:
+        if RES.shape[0] != self.graph.N:
             raise ValueError(
                 "Input data ({}) and input graph ({}) "
-                "are not of the same size".format(sample_labels.shape, self.graph.N)
+                "are not of the same size".format(RES.shape, self.graph.N)
             )
 
-        if len(np.unique(sample_labels)) == 1:
-            raise ValueError(
-                "Found only one unqiue sample label. Cannot estimate density "
-                "of a single sample."
-            )
+        self._RES_cls = type(RES)
+        self._RES_index = None
+        self._RES_columns = None
+        if isinstance(RES, pd.DataFrame):
+            self._RES_index, self._RES_columns = RES.index, RES.columns
 
-        #self._label_cls = type(sample_labels)
-        if isinstance(sample_labels, pd.DataFrame):
-            self._labels_index = sample_labels.index
+        self.RES = scprep.utils.toarray(RES)
+
+        # Need to handle multiple cases for how the RES is passed
+        # Option 1, a categorical / series / something like ['A', 'A', 'B', 'B']
+        if not np.issubdtype(self.RES.dtype, np.number):
+            # If we have non-numeric RES, then we should create an RES from it
+            self.RES = self._RES_from_sample_labels()
+
+        if self.normalize:
+            self.RES = self.RES / self.RES.sum(axis=0)
+
+        self.graph.estimate_lmax()
+
+        # Generate MELD filter
+        if self.filter.lower() == "laplacian":
+
+            def filterfunc(x):
+                return 1 / (
+                    1 + (self.beta * np.abs(x / self.graph.lmax - self.offset)) ** self.order
+                )
+
+        elif self.filter.lower() == "heat":
+
+            def filterfunc(x):
+                return (
+                    np.exp(-self.beta * np.abs(x / self.graph.lmax - self.offset) ** self.order)
+                )
+
         else:
-            self._labels_index = None
+            raise NotImplementedError
 
-        self._create_sample_indicators(sample_labels)
-
-        if self.sample_normalize:
-            self.sample_indicators = self.sample_indicators / self.sample_indicators.sum(axis=0)
+        # build filter
+        self.filt = pygsp.filters.Filter(self.graph, filterfunc)
 
         # apply filter
-        densities = filter.filter(signal=self.sample_indicators,
-                                  graph=self.graph,
-                                  filter=self.filter,
-                                  beta=self.beta,
-                                  offset=self.offset,
-                                  order=self.order,
-                                  solver=self.solver,
-                                  chebyshev_order=self.chebyshev_order)
+        self.EES = self.filt.filter(self.RES, method=self.solver, order=self.chebyshev_order)
 
-        self.sample_densities = pd.DataFrame(densities, index=self._labels_index, columns=self.sample_indicators.columns)
+        # normalize if only two samaples
+        if len(self.EES.shape) > 1 and self.EES.shape[1] == 2:
+            self.EES = utils.normalize_EES_within_replicate(self.EES)
 
-        return self.sample_densities
+        if self._RES_cls != np.ndarray:
+            self.RES = self._RES_cls(self.RES)
+            self.EES = self._RES_cls(self.EES)
 
-    def fit_transform(self, X, sample_labels, **kwargs):
-        """Builds the MELD filter over a graph built on data `X` and estimates density of each sample in `sample_labels`
+        if isinstance(self.RES, pd.DataFrame):
+            if self._RES_index is not None:
+                self.RES.index, self.EES.index = self._RES_index, self._RES_index
+            if self._RES_columns is not None:
+                self.RES.columns, self.EES.columns = self._RES_columns, self._RES_columns
+
+        return self.EES
+
+    def fit_transform(self, X, RES, **kwargs):
+        """Builds the MELD filter over a graph built on data `X` and filters a signal `RES`.
 
         Parameters
         ----------
@@ -230,15 +236,16 @@ class MELD(GraphEstimator):
         X : array-like, shape=[n_samples, m_features]
             Data on which to build graph to perform data smoothing over.
 
-        sample_labels : array-like, shape=[n_samples, p_signals]
-            1- or 2-dimensional array of non-numerics indicating the sample origin for each cell.
+        RES : array-like, shape=[n_samples, p_signals]
+            1- or 2-dimensional Raw Experimental Signal array to filter.
 
         kwargs : additional arguments for graphtools.Graph
 
         Returns
         -------
-        sample_densities : ndarray, shape=[n_samples, p_signals]
-            Density estimate for each sample over a graph built from X
+        EES : ndarray, shape=[n_samples, p_signals]
+            Enhanced Experimental Signal (smoothed RES)
         """
         self.fit(X, **kwargs)
-        return self.transform(sample_labels)
+        self.EES = self.transform(RES)
+        return self.EES

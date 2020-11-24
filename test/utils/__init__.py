@@ -63,6 +63,5 @@ def make_batches(n_pts_per_cluster=5000):
 
     data = np.concatenate(data, axis=0)
     labels = np.concatenate(labels, axis=0)
-    labels = np.array(['expt' if l else 'ctrl' for l in labels])
 
     return data, labels
