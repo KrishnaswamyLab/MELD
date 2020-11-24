@@ -23,9 +23,9 @@ class VertexFrequencyCluster(BaseEstimator):
     ----------
     n_clusters : int, optional, default: 10
         The number of clusters to form.
-    EES_bias : float, optional, default: 1
+    likelihood_bias : float, optional, default: 1
         A normalization term that biases clustering towards the
-        EES (higher values) or towards the spectrogram (lower values)
+        likelihood (higher values) or towards the spectrogram (lower values)
     window_count : int, optional, default: 9
         Number of windows to use if window_sizes = None
     window_sizes : None, optional, default: None
@@ -53,7 +53,7 @@ class VertexFrequencyCluster(BaseEstimator):
     def __init__(
         self,
         n_clusters=10,
-        EES_bias=1,
+        likelihood_bias=1,
         window_count=9,
         window_sizes=None,
         sparse=False,
@@ -71,16 +71,16 @@ class VertexFrequencyCluster(BaseEstimator):
 
         self.window_count = np.min(self.window_sizes.shape)
         self.n_clusters = n_clusters
-        self.EES_bias = EES_bias
+        self.likelihood_bias = likelihood_bias
         self.window = None
         self.eigenvectors = None
         self.N = None
         self.spec_hist = None
         self.spectrogram = None
-        self.combined_spectrogram_ees = None
+        self.combined_spectrogram = None
         self.isfit = False
-        self.EES = None
-        self.RES = None
+        self.likelihood = None
+        self.sample_indicator = None
         self._sklearn_params = kwargs
 
     def _activate(self, x, alpha=1):
@@ -99,12 +99,12 @@ class VertexFrequencyCluster(BaseEstimator):
         """
         return np.tanh(alpha * np.abs(x))
 
-    def _compute_spectrogram(self, RES, window):
+    def _compute_spectrogram(self, sample_indicator, window):
         """Computes spectrograms for arbitrary window/signal/graph combinations
 
         Parameters
         ----------
-        RES : np.ndarray
+        sample_indicator : np.ndarray
             Input signal
         U : np.ndarray
             eigenvectors
@@ -123,18 +123,20 @@ class VertexFrequencyCluster(BaseEstimator):
         """
         tic = time.time()
         # print('    Computing spectrogram for window')
-        if len(RES.shape) == 1:
-            RES = RES[:, None]
+        if len(sample_indicator.shape) == 1:
+            sample_indicator = np.array(sample_indicator)
+        else:
+            raise ValueError('sample_indicator must be 1-dimensional. Got shape: {}'.format(sample_indicator.shape))
         if sparse.issparse(window):
             # the next computation becomes dense - better to make dense now
-            C = window.multiply(RES).toarray()
+            C = window.multiply(sample_indicator).toarray()
         else:
-            C = np.multiply(window, RES)
+            C = np.multiply(window, sample_indicator)
         C = preprocessing.normalize(self.eigenvectors.T @ C, axis=0)
         # print('     finished in {:.2f} seconds'.format(time.time() - tic))
         return C.T
 
-    def _compute_multiresolution_spectrogram(self, RES):
+    def _compute_multiresolution_spectrogram(self, sample_indicator):
         """ Compute multiresolution spectrogram by repeatedly calling
             _compute_spectrogram """
 
@@ -143,7 +145,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
         # for window in self.windows:
         #    curr_spectrogram = self._compute_spectrogram(
-        #        RES, window)
+        #        sample_indicator, window)
         #    curr_spectrogram = self._activate(curr_spectrogram)
         #    spectrogram += curr_spectrogram
         tic = time.time()
@@ -151,7 +153,7 @@ class VertexFrequencyCluster(BaseEstimator):
         spectrogram = np.zeros((self.windows[0].shape[1], self.eigenvectors.shape[1]))
 
         for window in self.windows:
-            curr_spectrogram = self._compute_spectrogram(RES=RES, window=window)
+            curr_spectrogram = self._compute_spectrogram(sample_indicator=sample_indicator, window=window)
             curr_spectrogram = self._activate(curr_spectrogram)
             spectrogram += curr_spectrogram
 
@@ -161,7 +163,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
     def _compute_window(self, window, t=1):
         """_compute_window
-        These windows mask the signal (RES) to perform a Windowed Graph
+        These windows mask the signal (sample_indicator) to perform a Windowed Graph
         Fourier Transform (WGFT) as described by Shuman et al.
         (https://arxiv.org/abs/1307.5708).
 
@@ -182,7 +184,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
     def _compute_windows(self):
         """_compute_window
-        These windows mask the signal (RES) to perform a Windowed Graph
+        These windows mask the signal (sample_indicator) to perform a Windowed Graph
         Fourier Transform (WGFT) as described by Shuman et al.
         (https://arxiv.org/abs/1307.5708).
 
@@ -197,14 +199,14 @@ class VertexFrequencyCluster(BaseEstimator):
             windows.append(preprocessing.normalize(curr_window, "l2", axis=0).T)
         return windows
 
-    def _combine_spectrogram_EES(self, spectrogram, EES):
-        """ Normalizes and concatenates the EES to the
-            spectrogram for clustering"""
+    def _combine_spectrogram_likelihood(self, spectrogram, likelihood):
+        """Normalizes and concatenates the likelihood to the
+           spectrogram for clustering"""
 
         spectrogram_n = spectrogram / np.linalg.norm(spectrogram)
 
-        ees_n = EES / np.linalg.norm(EES, ord=2, axis=0)
-        ees_n = ees_n * self.EES_bias
+        ees_n = likelihood / np.linalg.norm(likelihood, ord=2, axis=0)
+        ees_n = ees_n * self.likelihood_bias
         data_nu = np.c_[spectrogram_n, ees_n]
         return data_nu
 
@@ -244,63 +246,63 @@ class VertexFrequencyCluster(BaseEstimator):
 
         return self
 
-    def transform(self, RES, EES=None, center=True):
-        """Calculates the spectrogram of the graph using the RES"""
-        self.RES = RES
-        self.EES = EES
+    def transform(self, sample_indicator, likelihood=None, center=True):
+        """Calculates the spectrogram of the graph using the sample_indicator"""
+        self.sample_indicator = sample_indicator
+        self.likelihood = likelihood
         if not self.isfit:
             raise ValueError("Estimator must be `fit` before running `transform`.")
 
-        if not isinstance(self.RES, (list, tuple, np.ndarray, pd.Series, pd.DataFrame)):
-            raise TypeError("`RES` must be array-like.")
+        if not isinstance(self.sample_indicator, (list, tuple, np.ndarray, pd.Series, pd.DataFrame)):
+            raise TypeError("`sample_indicator` must be array-like.")
 
-        if EES is not None and not isinstance(
-            self.EES, (list, tuple, np.ndarray, pd.Series)
+        if likelihood is not None and not isinstance(
+            self.likelihood, (list, tuple, np.ndarray, pd.Series, pd.DataFrame)
         ):
-            raise TypeError("`EES` must be array-like.")
+            raise TypeError("`likelihood` must be array-like.")
 
-        # Checking shape of RES
-        self.RES = np.array(self.RES)
-        if not self.N in self.RES.shape:
-            raise ValueError("At least one axis of `RES` must be" " of length `N`.")
+        # Checking shape of sample_indicator
+        self.sample_indicator = np.array(self.sample_indicator)
+        if not self.N in self.sample_indicator.shape:
+            raise ValueError("At least one axis of `sample_indicator` must be" " of length `N`.")
 
-        # Checking shape of EES
-        if EES is not None:
-            if self.N not in self.EES.shape:
-                raise ValueError("At least one axis of `EES` must be" " of length `N`.")
-            if EES.shape != RES.shape:
+        # Checking shape of likelihood
+        if likelihood is not None:
+            if self.N not in self.likelihood.shape:
+                raise ValueError("At least one axis of `likelihood` must be" " of length `N`.")
+            if likelihood.shape != sample_indicator.shape:
                 raise ValueError(
-                    "`RES` and `EES` must have the same shape."
-                    "Got RES: {} and EES: {}".format(str(RES.shape), str(EES.shape))
+                    "`sample_indicator` and `likelihood` must have the same shape. "
+                    "Got sample_indicator: {} and likelihood: {}".format(str(sample_indicator.shape), str(likelihood.shape))
                 )
-            self.EES = np.array(self.EES)
+            self.likelihood = np.array(self.likelihood)
 
-        # Subtract the mean from the RES
+        # Subtract the mean from the sample_indicator
         if center:
-            self.RES = self.RES - self.RES.mean()
+            self.sample_indicator = self.sample_indicator - self.sample_indicator.mean()
 
-        # If only one RES, no need to collect
-        if len(self.RES.shape) == 1:
-            self.spectrogram = self._compute_multiresolution_spectrogram(self.RES)
+        # If only one sample_indicator, no need to collect
+        if len(self.sample_indicator.shape) == 1:
+            self.spectrogram = self._compute_multiresolution_spectrogram(self.sample_indicator)
         else:
             # Create a list of spectrograms and concatenate them
             spectrograms = []
-            for i in range(self.RES.shape[1]):
-                curr_RES = scprep.select.select_cols(self.RES, idx=i)
-                spectrograms.append(self._compute_multiresolution_spectrogram(curr_RES))
+            for i in range(self.sample_indicator.shape[1]):
+                curr_sample_indicator = scprep.select.select_cols(self.sample_indicator, idx=i)
+                spectrograms.append(self._compute_multiresolution_spectrogram(curr_sample_indicator))
             self.spectrogram = np.hstack(spectrograms)
 
-        # Appending the EES to the spectrogram
-        if self.EES is not None:
-            self.combined_spectrogram_ees = self._combine_spectrogram_EES(
-                spectrogram=self.spectrogram, EES=self.EES
+        # Appending the likelihood to the spectrogram
+        if self.likelihood is not None:
+            self.combined_spectrogram = self._combine_spectrogram_likelihood(
+                spectrogram=self.spectrogram, likelihood=self.likelihood
             )
 
         return self.spectrogram
 
-    def fit_transform(self, G, RES, EES=None, **kwargs):
+    def fit_transform(self, G, sample_indicator, likelihood=None, **kwargs):
         self.fit(G, **kwargs)
-        return self.transform(RES, EES, **kwargs)
+        return self.transform(sample_indicator, likelihood, **kwargs)
 
     def predict(self, n_clusters=None, **kwargs):
         """Runs KMeans on the spectrogram."""
@@ -319,10 +321,10 @@ class VertexFrequencyCluster(BaseEstimator):
                 "Call VertexFrequencyCluster.transform()."
             )
 
-        if self.combined_spectrogram_ees is None:
+        if self.combined_spectrogram is None:
             data = self.spectrogram
         else:
-            data = self.combined_spectrogram_ees
+            data = self.combined_spectrogram
         tic = time.time()
         # print('Running PCA on the spectrogram')
         data = decomposition.PCA(self.n_clusters).fit_transform(data)
@@ -332,13 +334,16 @@ class VertexFrequencyCluster(BaseEstimator):
         # print('Running clustering')
         self.labels_ = self._clusterobj.fit_predict(data)
 
-        self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.RES)
+        if self.likelihood is not None:
+            self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.likelihood)
+        else:
+            self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.sample_indicator)
         # print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         return self.labels_
 
-    def fit_predict(self, G, RES, EES=None, **kwargs):
-        self.fit_transform(G, RES, EES, **kwargs)
+    def fit_predict(self, G, sample_indicator, likelihood=None, **kwargs):
+        self.fit_transform(G, sample_indicator, likelihood, **kwargs)
         return self.predict()
 
     def set_kmeans_params(self, **kwargs):

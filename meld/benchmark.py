@@ -24,32 +24,30 @@ class Benchmarker(object):
         Embedding of the data used to create random signals
     pdf : array, shape=[n_samples]
         Ground truth probability density function created over the input data.
-    RES_int : array, shape=[n_samples]
-        An integer representation of the RES used for k-NN and graph averaging.
-    RES : array, shape=[n_samples, 2]
-        Raw Experimental Signal (RES) as described in Burkhardt et al. (2020).
+    sample_indicator : array, shape=[n_samples]
+        Sample indicator vectors used for k-NN and graph averaging.
+    sample_labels : array, shape=[n_samples, 2]
         Indicates the sample to which each cell is assigned.
     graph : graphtools.base.BaseGraph
         The graph built on the input data
     graph_kNN : graphtools.graphs.kNNGraph
         The graph built on the input data
     meld_op : meld.meld.MELD
-        MELD operator used to derive an EES
-    EES : array, shape=[n_samples, 2]
-        Enhanced Experimental Signal (EES) a conditional probability that a cell was
-        originally sampled from either condition. Should converge to Benchmarker.pdf
+        MELD operator used to derive sample-associated density estimates
+    sample_likelihoods : array, shape=[n_samples, 2]
+        The relative likelihood that each cell originally sampled from either condition. Should converge to Benchmarker.pdf
 
     """
     def __init__(self, seed=None):
         self.seed = seed
         self.data_phate = None
         self.pdf = None
-        self.RES_int = None
-        self.RES = None
+        self.sample_indicator = None
+        self.sample_labels = None
         self.graph = None
         self.graph_kNN = None
         self.meld_op = None
-        self.EES = None
+        self.sample_densities = None
         self.estimates = {}
 
     def set_seed(self, seed):
@@ -172,14 +170,14 @@ class Benchmarker(object):
         self.pdf = scipy.special.expit(sort_axis)
         return self.pdf
 
-    def generate_RES(self):
+    def generate_sample_labels(self):
         np.random.seed(self.seed)
 
-        # Create RES
-        self.RES_int = np.random.binomial(1, self.pdf)
-        self.RES = np.array(['ctrl' if res == 0 else 'expt' for res in self.RES_int])
+        # Create sample labels
+        self.sample_indicator = np.random.binomial(1, self.pdf)
+        self.sample_labels = np.array(['ctrl' if ind == 0 else 'expt' for ind in self.sample_indicator])
 
-    def calculate_EES(self, data=None, **kwargs):
+    def calculate_MELD_likelihood(self, data=None, **kwargs):
         np.random.seed(self.seed)
         if not self.graph:
             if data is not None:
@@ -188,9 +186,10 @@ class Benchmarker(object):
                 raise NameError("Must pass `data` unless graph has already been fit")
 
         self.meld_op = meld.MELD(**kwargs, verbose=False).fit(self.graph)
-        self.EES = self.meld_op.transform(self.RES)
-        self.EES = self.EES['expt'].values # Only keep the expt condition
-        return self.EES
+        self.sample_densities = self.meld_op.transform(self.sample_labels)
+        self.sample_likelihoods = meld.utils.normalize_densities(self.sample_densities)
+        self.sample_likelihoods = self.sample_likelihoods['expt'].values # Only keep the expt condition
+        return self.sample_likelihoods
 
     def calculate_mse(self, estimate):
         '''Calculated MSE between the ground truth PDF and an estimate
