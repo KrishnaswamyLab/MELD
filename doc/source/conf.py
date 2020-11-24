@@ -55,7 +55,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "MELD"
-copyright = "2019 Krishnaswamy Lab, Yale University"
+copyright = "2020 Krishnaswamy Lab, Yale University"
 author = "Daniel Burkhardt"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -155,7 +155,7 @@ texinfo_documents = [
         "meld Documentation",
         author,
         "meld",
-        "One line description of project.",
-        "Miscellaneous",
+        "Quantitative analysis of single cell perturbation experiments.",
+        "Machine Learning",
     ),
 ]

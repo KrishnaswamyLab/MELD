@@ -25,9 +25,9 @@ def test_benchmarker_density():
 
     benchmarker.generate_sample_labels()
     benchmarker.calculate_MELD_likelihood(data=data) #implicitly tests graph
-    sample_likelihoods_mse = benchmarker.calculate_mse(benchmarker.sample_likelihoods)
+    sample_likelihood_mse = benchmarker.calculate_mse(benchmarker.expt_likelihood)
 
-    np.testing.assert_allclose(4.962076e-05, sample_likelihoods_mse)
+    np.testing.assert_allclose(4.962076e-05, sample_likelihood_mse)
 
     # Test mean-center works
     benchmarker.set_phate(benchmarker.data_phate + 1)

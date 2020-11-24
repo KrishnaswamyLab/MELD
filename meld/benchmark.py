@@ -188,8 +188,8 @@ class Benchmarker(object):
         self.meld_op = meld.MELD(**kwargs, verbose=False).fit(self.graph)
         self.sample_densities = self.meld_op.transform(self.sample_labels)
         self.sample_likelihoods = meld.utils.normalize_densities(self.sample_densities)
-        self.sample_likelihoods = self.sample_likelihoods['expt'].values # Only keep the expt condition
-        return self.sample_likelihoods
+        self.expt_likelihood = self.sample_likelihoods['expt'].values # Only keep the expt condition
+        return self.expt_likelihood
 
     def calculate_mse(self, estimate):
         '''Calculated MSE between the ground truth PDF and an estimate

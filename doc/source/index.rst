@@ -34,10 +34,9 @@ meld
 
     <a href="https://github.com/KrishnaswamyLab/meld/"><img src="https://img.shields.io/github/stars/KrishnaswamyLab/meld.svg?style=social&label=Stars" alt="GitHub stars"></a>
 
-Quantifying the effect of experimental perturbations in scRNA-seq data.
+MELD is a Python package for quantifying the effects of experimental perturbations. For an in depth explanation of the algorithm, read our manuscript on BioRxiv: https://www.biorxiv.org/content/10.1101/532846v2
 
-Note, this repository is under active development. Please check back on
-Monday Feb 4th 2019 for Version 0.1.
+The goal of MELD is to identify populations of cells that are most affected by an experimental perturbation. Rather than clustering the data first and calculating differential abundance of samples within clusters, MELD provides a density estimate for each scRNA-seq sample for every cell in each dataset. Comparing the ratio between the density of each sample provides a quantitative estimate the effect of a perturbation at the single-cell level. We can then identify the cells most or least affected by the perturbation.
 
 .. toctree::
     :maxdepth: 2
@@ -48,12 +47,22 @@ Monday Feb 4th 2019 for Version 0.1.
 Quick Start
 ===========
 
-You can use `meld` with your single cell data as follows::
+You can use `meld` as follows::
 
-   import meld
-   import graphtools
-   G = graphtools.Graph(data, use_pygsp=True)
-   meld_score = meld.meld(label, G=G, beta=0.5)
+    import numpy as np
+    import meld
+
+    # Create toy data
+    n_samples = 500
+    n_dimensions = 100
+    data = np.random.normal(size=(n_samples, n_dimensions))
+    sample_labels = np.random.choice(['treatment', 'control'], size=n_samples)
+
+    # Estimate density of each sample over the graph
+    sample_densities = meld.MELD().fit_transform(data, sample_labels)
+
+    # Normalize densities to calculate sample likelihoods
+    sample_likelihoods = meld.utils.normalize_densities(sample_densities)
 
 Help
 ====
