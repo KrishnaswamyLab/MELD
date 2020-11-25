@@ -2,11 +2,14 @@ Reference
 =========
 
 .. automodule:: meld.meld
+    :autosummary:
     :members:
-    :inherited-members:
+    :inherited-members
+    :imported-members:
     :show-inheritance:
 
-.. automodule:: meld.cluster
+.. automodule:: meld.
+    :autosummary:
     :members:
     :inherited-members:
     :show-inheritance:
