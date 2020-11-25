@@ -1,6 +1,8 @@
 Reference
 =========
 
+MELD density estimation
+-----------------
 .. automodule:: meld.meld
     :autosummary:
     :members:
@@ -8,6 +10,8 @@ Reference
     :imported-members:
     :show-inheritance:
 
+Vertex Frequency Clustering
+-----------------
 .. automodule:: meld.
     :autosummary:
     :members:
