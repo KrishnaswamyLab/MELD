@@ -12,7 +12,7 @@ MELD density estimation
 
 Vertex Frequency Clustering
 ---------------------------
-.. automodule:: meld.
+.. automodule:: meld.cluster
     :autosummary:
     :members:
     :inherited-members:
