@@ -6,7 +6,7 @@ MELD density estimation
 .. automodule:: meld.meld
     :autosummary:
     :members:
-    :inherited-members
+    :inherited-members:
     :imported-members:
     :show-inheritance:
 
