@@ -2,7 +2,7 @@ Reference
 =========
 
 MELD density estimation
------------------
+-----------------------
 .. automodule:: meld.meld
     :autosummary:
     :members:
@@ -11,7 +11,7 @@ MELD density estimation
     :show-inheritance:
 
 Vertex Frequency Clustering
------------------
+---------------------------
 .. automodule:: meld.
     :autosummary:
     :members:
