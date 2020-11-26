@@ -24,8 +24,9 @@ class MELD(GraphEstimator):
         Recommend using an eigenvalue from the graph based on the
         spectral distribution. Should be in interval [0,1]
     order: int, optional, Default: 1
-        Falloff and smoothness of the filter.
-        High order leads to square-like filters.
+        Falloff and smoothness of the filter. High order leads to square-like filters.
+    filter: str, optional, Default: 'heat'
+        Filter type to use. Should be in ['heat', 'laplacian']
     solver : string, optional, Default: 'chebyshev'
         Method to solve convex problem.
         'chebyshev' uses a chebyshev polynomial approximation of the corresponding filter
@@ -39,27 +40,42 @@ class MELD(GraphEstimator):
     """
 
     # parameters
-    beta = attribute("beta", doc=":noindex:", default=40, on_set=graphtools.utils.check_positive)
-    offset = attribute("offset", doc=":meta private:", default=0)
-    order = attribute("order", default=1)
+    beta = attribute("beta",
+    doc="Amount of smoothing to apply. Default value of 60 determined through analysis"
+        "of simulated data using Splatter (https://github.com/Oshlack/splatter).",
+    default=40, on_set=graphtools.utils.check_positive)
+    offset = attribute("offset",
+                       doc="Amount to shift the MELD filter in the eigenvalue spectrum."
+                       "Recommend using an eigenvalue from the graph based on the"
+                       "spectral distribution. Should be in interval [0,1]",
+                       default=0)
+    order = attribute("order",
+                    doc="Falloff and smoothness of the filter. High order leads to square-like filters.",
+                    default=1)
     filter = attribute(
         "filter",
         default="heat",
+        doc="Filter type to use. Should be in ['heat', 'laplacian']",
         on_set=partial(graphtools.utils.check_in, ["heat", "laplacian"]),
     )
     solver = attribute(
         "solver",
         default="chebyshev",
+        doc="Method to solve convex problem.""
+            "'chebyshev' uses a chebyshev polynomial approximation of the corresponding filter"
+            "'exact' uses the eigenvalue solution to the problem",
         on_set=partial(graphtools.utils.check_in, ["chebyshev", "exact"]),
     )
     chebyshev_order = attribute(
         "chebyshev_order",
         default=30,
+        doc="Order of chebyshev approximation to use.",
         on_set=[graphtools.utils.check_int, graphtools.utils.check_positive],
     )
     lap_type = attribute(
         "lap_type",
         default="combinatorial",
+        doc="The kind of Laplacian to calculate",
         on_set=partial(graphtools.utils.check_in, ["combinatorial", "normalized"]),
     )
 
