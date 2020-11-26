@@ -3,8 +3,8 @@ Reference
 
 MELD density estimation
 -----------------------
-.. autoclass:: meld.meld.MELD
-    
+.. class:: meld.meld.MELD
+
 
 
 Vertex Frequency Clustering
