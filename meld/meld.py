@@ -42,7 +42,7 @@ class MELD(GraphEstimator):
     # parameters
     beta = attribute("beta",
     doc="Amount of smoothing to apply. Default value of 60 determined through analysis"
-        "of simulated data using Splatter (https://github.com/Oshlack/splatter).",
+        "of simulated data using Splatter",
     default=40, on_set=graphtools.utils.check_positive)
     offset = attribute("offset",
                        doc="Amount to shift the MELD filter in the eigenvalue spectrum."

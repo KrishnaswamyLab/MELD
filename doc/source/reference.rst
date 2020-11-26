@@ -4,7 +4,7 @@ Reference
 MELD density estimation
 -----------------------
 .. autoclass:: meld.meld.MELD
-    :members:
+    :members: fit, transform, fit_transform
 
 
 Vertex Frequency Clustering
