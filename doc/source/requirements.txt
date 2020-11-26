@@ -5,5 +5,4 @@ future
 graphtools>=0.1.8.1
 sphinx>=2.2
 sphinxcontrib-napoleon
-autodocsumm
 scprep
