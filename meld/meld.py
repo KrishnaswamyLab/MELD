@@ -80,7 +80,6 @@ class MELD(GraphEstimator):
     )
 
     # stored attributes
-    filt = attribute("filt")
     sample_densities = attribute(
         "sample_densities",
         doc="Density associated with each sample")
