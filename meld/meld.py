@@ -61,7 +61,7 @@ class MELD(GraphEstimator):
     solver = attribute(
         "solver",
         default="chebyshev",
-        doc="Method to solve convex problem.""
+        doc="Method to solve convex problem."
             "'chebyshev' uses a chebyshev polynomial approximation of the corresponding filter"
             "'exact' uses the eigenvalue solution to the problem",
         on_set=partial(graphtools.utils.check_in, ["chebyshev", "exact"]),
