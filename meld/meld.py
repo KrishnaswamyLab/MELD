@@ -40,7 +40,7 @@ class MELD(GraphEstimator):
 
     # parameters
     beta = attribute("beta", doc=":noindex:", default=40, on_set=graphtools.utils.check_positive)
-    offset = attribute("offset", doc=":meta private:" default=0)
+    offset = attribute("offset", doc=":meta private:", default=0)
     order = attribute("order", default=1)
     filter = attribute(
         "filter",
