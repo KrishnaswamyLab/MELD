@@ -18,7 +18,7 @@ class MELD(GraphEstimator):
     ----------
     beta : int, optional, Default: 60
         Amount of smoothing to apply. Default value of 60 determined through analysis
-        of simulated data using Splatter (https://github.com/Oshlack/splatter).
+        of simulated data using Splatter.
     offset: float, optional, Default: 0
         Amount to shift the MELD filter in the eigenvalue spectrum.
         Recommend using an eigenvalue from the graph based on the
