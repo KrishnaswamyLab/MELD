@@ -89,8 +89,11 @@ jobs:
     - name: Run tests
       run: nose2 -vvv
 
-    - name: Coveralls GitHub Action
-      uses: coverallsapp/github-action@v1.1.2
+    - name: Coveralls
+      env:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        coveralls
 
     - name: Upload check results on fail
       if: failure()
