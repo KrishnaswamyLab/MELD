@@ -1,7 +1,6 @@
 # Copyright (C) 2020 Krishnaswamy Lab, Yale University
 
 import os
-import sys
 from setuptools import setup, find_packages
 
 install_requires = [
@@ -11,7 +10,7 @@ install_requires = [
     "pandas>=0.25",
     "scprep>=1.0",
     "pygsp",
-    "sklearn"
+    "sklearn",
 ]
 
 test_requires = [
@@ -23,8 +22,8 @@ test_requires = [
     "packaging",
     "matplotlib",
     "parameterized",
-    "phate"
-    ]
+    "phate",
+]
 
 doc_requires = [
     "sphinx",

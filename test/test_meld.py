@@ -9,8 +9,7 @@ import unittest
 
 from scipy import sparse
 from parameterized import parameterized
-from utils import make_batches, assert_warns_message, assert_raises_message
-from nose.tools import assert_raises
+from utils import make_batches, assert_raises_message
 
 from packaging import version
 
@@ -36,8 +35,9 @@ def test_mnn():
     sample_likelihoods = meld.utils.normalize_densities(sample_densities)
     meld.VertexFrequencyCluster().fit_transform(
         G=meld_op.graph,
-        sample_indicator=meld_op.sample_indicators['expt'],
-        likelihood=sample_likelihoods['expt'])
+        sample_indicator=meld_op.sample_indicators["expt"],
+        likelihood=sample_likelihoods["expt"],
+    )
 
 
 @parameterized([("heat",), ("laplacian",)])
@@ -54,23 +54,28 @@ def test_meld(filter):
 
     data = np.random.normal(0, 2, (1000, 2))
     sample_labels = np.random.binomial(1, norm(data[:, 0]), 1000)
-    sample_labels = np.array(['treat' if val else 'ctrl' for val in sample_labels])
+    sample_labels = np.array(["treat" if val else "ctrl" for val in sample_labels])
 
     meld_op = meld.MELD(
-        verbose=0, knn=20, decay=10, thresh=0, anisotropy=0,
-        filter=filter, solver="exact",
-        sample_normalize=False
+        verbose=0,
+        knn=20,
+        decay=10,
+        thresh=0,
+        anisotropy=0,
+        filter=filter,
+        solver="exact",
+        sample_normalize=False,
     )
     densities = meld_op.fit_transform(data, sample_labels)
     expt_density = densities.iloc[:, 1]
 
     if version.parse("1.17") <= version.parse(np.__version__) < version.parse("1.18"):
-        if meld_op.filter == 'laplacian':
+        if meld_op.filter == "laplacian":
             np.testing.assert_allclose(np.sum(expt_density), 519)
         else:
             np.testing.assert_allclose(np.sum(expt_density), 519)
     else:
-        if meld_op.filter == 'laplacian':
+        if meld_op.filter == "laplacian":
             np.testing.assert_allclose(np.sum(expt_density), 532)
         else:
             np.testing.assert_allclose(np.sum(expt_density), 532)
@@ -110,72 +115,80 @@ def test_meld_labels_wrong_shape():
         "are not of the same size".format(sample_labels.shape, data.shape[0]),
     ):
         meld.MELD(verbose=0).fit_transform(
-            X=data, sample_labels=sample_labels,
+            X=data,
+            sample_labels=sample_labels,
         )
+
 
 def test_meld_label_2d():
     data = np.random.normal(0, 2, (100, 2))
     # Create a dataframe with a index
-    index = pd.Index(['cell_{}'.format(i) for i in range(100)])
-    columns = pd.Index(['A'])
+    index = pd.Index(["cell_{}".format(i) for i in range(100)])
+    columns = pd.Index(["A"])
     sample_labels = pd.DataFrame(
-            np.concatenate([np.zeros((50,1)), np.ones((50,1))]),
-            index=index,
-            columns=columns,
-            dtype=str,
-            )
+        np.concatenate([np.zeros((50, 1)), np.ones((50, 1))]),
+        index=index,
+        columns=columns,
+        dtype=str,
+    )
     meld_op = meld.MELD(verbose=0)
 
-    sample_densities = meld_op.fit_transform(
-            X=data, sample_labels=sample_labels,
-            )
+    meld_op.fit_transform(
+        X=data,
+        sample_labels=sample_labels,
+    )
 
 
 def test_meld_label_dataframe():
     data = np.random.normal(0, 2, (100, 2))
     # Create a dataframe with a index
-    index = pd.Index(['cell_{}'.format(i) for i in range(100)])
+    index = pd.Index(["cell_{}".format(i) for i in range(100)])
     sample_labels = pd.DataFrame(
-            np.concatenate([np.zeros(50), np.ones(50)]),
-            index=index,
-            columns=['sample_labels'],
-            dtype=str)
+        np.concatenate([np.zeros(50), np.ones(50)]),
+        index=index,
+        columns=["sample_labels"],
+        dtype=str,
+    )
 
     meld_op = meld.MELD(verbose=0)
     sample_densities = meld_op.fit_transform(
-        X=data, sample_labels=sample_labels,
+        X=data,
+        sample_labels=sample_labels,
     )
     assert np.all(sample_densities.index == index)
     assert np.all(sample_densities.columns == pd.Index(np.unique(sample_labels)))
 
-def test_meld_labels_non_numeric():
-    data = np.random.normal(size=(100,2))
 
-    sample_labels = np.random.choice(['A', 'B'], size=100)
+def test_meld_labels_non_numeric():
+    data = np.random.normal(size=(100, 2))
+
+    sample_labels = np.random.choice(["A", "B"], size=100)
     meld_op = meld.MELD()
     meld_op.fit_transform(data, sample_labels)
 
-    sample_labels = np.random.choice(['A', 'B', 'C'], size=100)
+    sample_labels = np.random.choice(["A", "B", "C"], size=100)
     meld_op = meld.MELD()
     sample_densities = meld_op.fit_transform(data, sample_labels)
-    assert np.all(sample_densities.columns == ['A', 'B', 'C'])
+    assert np.all(sample_densities.columns == ["A", "B", "C"])
+
 
 def test_sample_labels_2d():
-    labels = np.ones((10,2))
+    labels = np.ones((10, 2))
     with assert_raises_message(
         ValueError,
-        "sample_labels must be a single column. Got"    "shape={}".format(labels.shape)
-        ):
+        "sample_labels must be a single column. Got" "shape={}".format(labels.shape),
+    ):
         meld.MELD()._create_sample_indicators(labels)
 
+
 def test_sample_labels_one_sample():
-    data = np.random.normal(size=(100,2))
+    data = np.random.normal(size=(100, 2))
     labels = np.ones(100)
     with assert_raises_message(
         ValueError,
         "Found only one unqiue sample label. Cannot estimate density "
-        "of a single sample."
-        ):
+        "of a single sample.",
+    ):
         meld.MELD().fit_transform(data, labels)
 
 
@@ -196,9 +209,11 @@ class TestCluster(unittest.TestCase):
 
     def test_cluster(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
-        spectrogram = vfc_op.fit_transform(self.G,
-                                sample_indicator=self.sample_indicators['expt'],
-                                likelihood=self.likelihoods['expt'])
+        spectrogram = vfc_op.fit_transform(
+            self.G,
+            sample_indicator=self.sample_indicators["expt"],
+            likelihood=self.likelihoods["expt"],
+        )
         # test sparse window
         for t in self.window_sizes:
             np.testing.assert_allclose(
@@ -208,69 +223,74 @@ class TestCluster(unittest.TestCase):
         # test sparse spectrogram
         for window in vfc_op.windows:
             np.testing.assert_allclose(
-                vfc_op._compute_spectrogram(self.sample_indicators['expt'], window),
-                vfc_op._compute_spectrogram(self.sample_indicators['expt'], sparse.csr_matrix(window)),
+                vfc_op._compute_spectrogram(self.sample_indicators["expt"], window),
+                vfc_op._compute_spectrogram(
+                    self.sample_indicators["expt"], sparse.csr_matrix(window)
+                ),
             )
         # test full sparse computation
         vfc_op.sparse = True
-        sparse_spectrogram = vfc_op.fit_transform(self.G,
-                                sample_indicator=self.sample_indicators['expt'],
-                                likelihood=self.likelihoods['expt'])
+        sparse_spectrogram = vfc_op.fit_transform(
+            self.G,
+            sample_indicator=self.sample_indicators["expt"],
+            likelihood=self.likelihoods["expt"],
+        )
         assert sparse_spectrogram.shape == spectrogram.shape
         assert sparse.issparse(vfc_op._basewindow)
 
         # test _compute_spectrogram wrong size signal
         with assert_raises_message(
             ValueError,
-            "sample_indicator must be 1-dimensional. Got shape: {}".format(self.data.shape),
+            "sample_indicator must be 1-dimensional. Got shape: {}".format(
+                self.data.shape
+            ),
         ):
             vfc_op._compute_spectrogram(self.data, window)
 
-
     def test_cluster_no_likelihood(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
-        spectrogram = vfc_op.fit_predict(
-                    self.G,
-                    sample_indicator=self.sample_indicators['expt'],
-                    likelihood=self.likelihoods['expt'])
+        vfc_op.fit_predict(
+            self.G,
+            sample_indicator=self.sample_indicators["expt"],
+            likelihood=self.likelihoods["expt"],
+        )
 
     def test_predit_setting_n_cluster(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
-        spectrogram = vfc_op.fit_transform(
-                    self.G,
-                    sample_indicator=self.sample_indicators['expt'],
-                    likelihood=self.likelihoods['expt'])
-        clusters = vfc_op.predict(n_clusters=2)
+        vfc_op.fit_transform(
+            self.G,
+            sample_indicator=self.sample_indicators["expt"],
+            likelihood=self.likelihoods["expt"],
+        )
+        vfc_op.predict(n_clusters=2)
 
     def test_2d(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
         clusters = vfc_op.fit_predict(
-                    self.G,
-                    sample_indicator=self.sample_indicators,
-                    likelihood=self.likelihoods)
+            self.G, sample_indicator=self.sample_indicators, likelihood=self.likelihoods
+        )
 
         assert len(clusters) == len(self.sample_labels)
+
     def test_predict_no_likelihood(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
         clusters = vfc_op.fit_predict(
-                    self.G,
-                    sample_indicator=self.sample_indicators['expt'])
+            self.G, sample_indicator=self.sample_indicators["expt"]
+        )
 
         assert len(clusters) == len(self.sample_labels)
 
     def test_sample_indicator_likelihood_shape(self):
         vfc_op = meld.VertexFrequencyCluster(window_sizes=self.window_sizes)
-        meld_op = meld.MELD(verbose=0,)
         assert_raises_message(
             ValueError,
             "`sample_indicator` and `likelihood` must have the same shape. "
             "Got sample_indicator: {} and likelihood: {}".format(
-                str(self.sample_indicators['expt'].shape),
-                str(self.likelihoods.shape)
-                ),
+                str(self.sample_indicators["expt"].shape), str(self.likelihoods.shape)
+            ),
             vfc_op.fit_predict,
             G=self.G,
-            sample_indicator=self.sample_indicators['expt'],
+            sample_indicator=self.sample_indicators["expt"],
             likelihood=self.likelihoods,
         )
 
@@ -280,8 +300,8 @@ class TestCluster(unittest.TestCase):
             ValueError,
             "Estimator must be `fit` before running `transform`.",
             meld.VertexFrequencyCluster().transform,
-            sample_indicator=self.sample_indicators['expt'],
-            likelihood=self.likelihoods['expt'],
+            sample_indicator=self.sample_indicators["expt"],
+            likelihood=self.likelihoods["expt"],
         )
 
     def test_predict_before_fit(self):
@@ -289,7 +309,7 @@ class TestCluster(unittest.TestCase):
         assert_raises_message(
             ValueError,
             "Estimator is not fit. Call VertexFrequencyCluster.fit().",
-            meld.VertexFrequencyCluster().predict
+            meld.VertexFrequencyCluster().predict,
         )
 
     def test_predict_before_transform(self):
@@ -299,7 +319,7 @@ class TestCluster(unittest.TestCase):
         assert_raises_message(
             ValueError,
             "Estimator is not transformed. " "Call VertexFrequencyCluster.transform().",
-            vfc_op.predict
+            vfc_op.predict,
         )
 
     def test_sample_indicator_invalid(self):
@@ -331,7 +351,7 @@ class TestCluster(unittest.TestCase):
             meld.VertexFrequencyCluster().fit_transform,
             G=self.G,
             sample_indicator=np.ones(7),
-            likelihood=self.likelihoods['expt'],
+            likelihood=self.likelihoods["expt"],
         )
 
     def test_likelihood_wrong_length(self):

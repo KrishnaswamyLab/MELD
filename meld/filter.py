@@ -1,8 +1,18 @@
 import pygsp
 import numpy as np
 
-def filter(signal, graph, filter, beta, offset=0, order=1, solver='chebyshev', chebyshev_order=None):
-    '''Implements the MELD filter for sample-associated density estimation
+
+def filter(
+    signal,
+    graph,
+    filter,
+    beta,
+    offset=0,
+    order=1,
+    solver="chebyshev",
+    chebyshev_order=None,
+):
+    """Implements the MELD filter for sample-associated density estimation
 
     Parameters
     ----------
@@ -20,12 +30,11 @@ def filter(signal, graph, filter, beta, offset=0, order=1, solver='chebyshev', c
         High order leads to square-like filters.
     solver : string, optional, Default: 'chebyshev'
         Method to solve convex problem.
-        'chebyshev' uses a chebyshev polynomial approximation of the corresponding filter
-        'exact' uses the eigenvalue solution to the problem
+        'chebyshev' uses a chebyshev polynomial approximation of the corresponding
+        filter. 'exact' uses the eigenvalue solution to the problem
     chebyshev_order : int, optional, Default: 50
         Order of chebyshev approximation to use.
-    '''
-
+    """
 
     graph.estimate_lmax()
 
@@ -33,16 +42,12 @@ def filter(signal, graph, filter, beta, offset=0, order=1, solver='chebyshev', c
     if filter.lower() == "laplacian":
 
         def filterfunc(x):
-            return 1 / (
-                1 + (beta * np.abs(x / graph.lmax - offset)) ** order
-            )
+            return 1 / (1 + (beta * np.abs(x / graph.lmax - offset)) ** order)
 
     elif filter.lower() == "heat":
 
         def filterfunc(x):
-            return (
-                np.exp(-beta * np.abs(x / graph.lmax - offset) ** order)
-            )
+            return np.exp(-beta * np.abs(x / graph.lmax - offset) ** order)
 
     else:
         raise NotImplementedError
