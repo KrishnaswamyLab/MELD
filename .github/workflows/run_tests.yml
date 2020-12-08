@@ -90,8 +90,7 @@ jobs:
       run: nose2 -vvv
 
     - name: Coveralls
-      env:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         coveralls
 
