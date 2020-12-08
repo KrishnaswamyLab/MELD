@@ -85,16 +85,11 @@ jobs:
         pip install --use-deprecated=legacy-resolver -U wheel setuptools
         pip install --use-deprecated=legacy-resolver -U .[test,r]
         python -c "import meld"
-  
+
     - name: Run tests
       run: nose2 -vvv
 
-    - name: Upload coverage
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        coverage combine -a .
-        coveralls
+
     - name: Upload check results on fail
       if: failure()
       uses: actions/upload-artifact@master
