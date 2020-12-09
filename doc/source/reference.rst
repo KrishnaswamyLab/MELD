@@ -1,11 +1,14 @@
 Reference
 =========
 
-.. automodule:: meld.meld
+MELD density estimation
+-----------------------
+.. autoclass:: meld.meld.MELD
     :members:
-    :inherited-members:
-    :show-inheritance:
 
+
+Vertex Frequency Clustering
+---------------------------
 .. automodule:: meld.cluster
     :members:
     :inherited-members:

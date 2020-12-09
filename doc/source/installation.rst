@@ -8,4 +8,4 @@ Installation
 Requirements
 ------------
 
-MELD requires Python >= 3.5. All other requirements are installed automatically by `pip`.
+MELD requires Python >= 3.6. All other requirements are installed automatically by `pip`.

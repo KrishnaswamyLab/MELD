@@ -35,9 +35,11 @@ class Benchmarker(object):
     meld_op : meld.meld.MELD
         MELD operator used to derive sample-associated density estimates
     sample_likelihoods : array, shape=[n_samples, 2]
-        The relative likelihood that each cell originally sampled from either condition. Should converge to Benchmarker.pdf
+        The relative likelihood that each cell originally sampled from either condition.
+        Should converge to Benchmarker.pdf
 
     """
+
     def __init__(self, seed=None):
         self.seed = seed
         self.data_phate = None
@@ -68,7 +70,6 @@ class Benchmarker(object):
         self.seed = seed
         return self.seed
 
-
     def set_phate(self, data_phate):
         """Short summary.
 
@@ -84,12 +85,11 @@ class Benchmarker(object):
 
         """
         if not data_phate.shape[1] == 3:
-            raise ValueError('data_phate must have 3 dimensions')
+            raise ValueError("data_phate must have 3 dimensions")
         if not np.isclose(data_phate.mean(), 0):
             # data_phate must be mean-centered
             data_phate = scipy.stats.zscore(data_phate, axis=0)
         self.data_phate = data_phate
-
 
     def fit_graph(self, data, **kwargs):
         """Fits a graphtools.Graph to input data
@@ -107,7 +107,9 @@ class Benchmarker(object):
             Graph fit to data
 
         """
-        self.graph = gt.Graph(data, n_pca=100, use_pygsp=True, random_state=self.seed, **kwargs)
+        self.graph = gt.Graph(
+            data, n_pca=100, use_pygsp=True, random_state=self.seed, **kwargs
+        )
         return self.graph
 
     def fit_phate(self, data, **kwargs):
@@ -131,12 +133,12 @@ class Benchmarker(object):
         self.set_phate(phate.PHATE(n_components=3, **kwargs).fit_transform(data))
         return self.data_phate
 
-
     def generate_ground_truth_pdf(self, data_phate=None):
         """Creates a random density function over input data.
 
         Takes a set of PHATE coordinates over a set of points and creates an underlying
-        ground truth pdf over the points as a convex combination of the input phate coords.
+        ground truth pdf over the points as a convex combination of the input phate
+        coordinates.
 
         Parameters
         ----------
@@ -155,7 +157,9 @@ class Benchmarker(object):
         if data_phate is not None:
             self.set_phate(data_phate)
         elif self.data_phate is None:
-            raise ValueError('data_phate must be set prior to running generate_ground_truth_pdf().')
+            raise ValueError(
+                "data_phate must be set prior to running generate_ground_truth_pdf()."
+            )
 
         # Create an array of values that sums to 1
         data_simplex = np.sort(np.random.uniform(size=(2)))
@@ -175,7 +179,9 @@ class Benchmarker(object):
 
         # Create sample labels
         self.sample_indicator = np.random.binomial(1, self.pdf)
-        self.sample_labels = np.array(['ctrl' if ind == 0 else 'expt' for ind in self.sample_indicator])
+        self.sample_labels = np.array(
+            ["ctrl" if ind == 0 else "expt" for ind in self.sample_indicator]
+        )
 
     def calculate_MELD_likelihood(self, data=None, **kwargs):
         np.random.seed(self.seed)
@@ -188,10 +194,11 @@ class Benchmarker(object):
         self.meld_op = meld.MELD(**kwargs, verbose=False).fit(self.graph)
         self.sample_densities = self.meld_op.transform(self.sample_labels)
         self.sample_likelihoods = meld.utils.normalize_densities(self.sample_densities)
-        self.sample_likelihoods = self.sample_likelihoods['expt'].values # Only keep the expt condition
-        return self.sample_likelihoods
+        self.expt_likelihood = self.sample_likelihoods[
+            "expt"
+        ].values  # Only keep the expt condition
+        return self.expt_likelihood
 
     def calculate_mse(self, estimate):
-        '''Calculated MSE between the ground truth PDF and an estimate
-        '''
+        """Calculated MSE between the ground truth PDF and an estimate"""
         return sklearn.metrics.mean_squared_error(self.pdf, estimate)

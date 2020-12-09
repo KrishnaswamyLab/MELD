@@ -35,34 +35,37 @@ reset_warnings()
 
 
 def make_batches(n_pts_per_cluster=5000):
-    data = []
+    datas = []
     labels = []
 
-    make = lambda x, y, s: np.concatenate(
-        [
-            np.random.normal(x, s, (n_pts_per_cluster, 1)),
-            np.random.normal(y, s, (n_pts_per_cluster, 1)),
-        ],
-        axis=1,
-    )
-    # batch 1
-    d = [make(0, 0, 0.1), make(1, 1, 0.1), make(0, 1, 0.1)]
-    l = np.zeros(len(d) * n_pts_per_cluster)
-    d = np.concatenate(d, axis=0)
+    def make(x, y, s):
+        data = np.concatenate(
+            [
+                np.random.normal(x, s, (n_pts_per_cluster, 1)),
+                np.random.normal(y, s, (n_pts_per_cluster, 1)),
+            ],
+            axis=1,
+        )
+        return data
 
-    data.append(d)
-    labels.append(l)
+    # batch 1
+    data = [make(0, 0, 0.1), make(1, 1, 0.1), make(0, 1, 0.1)]
+    label = np.zeros(len(data) * n_pts_per_cluster)
+    data = np.concatenate(data, axis=0)
+
+    datas.append(data)
+    labels.append(label)
 
     # batch 2
-    d = [make(1, -1, 0.1), make(2, 0, 0.1), make(-2, -1, 0.1)]
-    l = np.ones(len(d) * n_pts_per_cluster)
-    d = np.concatenate(d, axis=0)
-
-    data.append(d)
-    labels.append(l)
-
+    data = [make(1, -1, 0.1), make(2, 0, 0.1), make(-2, -1, 0.1)]
+    label = np.ones(len(data) * n_pts_per_cluster)
     data = np.concatenate(data, axis=0)
-    labels = np.concatenate(labels, axis=0)
-    labels = np.array(['expt' if l else 'ctrl' for l in labels])
 
-    return data, labels
+    datas.append(data)
+    labels.append(label)
+
+    datas = np.concatenate(datas, axis=0)
+    labels = np.concatenate(labels, axis=0)
+    labels = np.array(["expt" if label else "ctrl" for label in labels])
+
+    return datas, labels

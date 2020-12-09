@@ -1,12 +1,12 @@
 # Copyright (C) 2020 Krishnaswamy Lab, Yale University
 
-import numpy as np
 import pandas as pd
 import graphtools.base
 import graphtools
 import pygsp
 import scprep
 import sklearn
+
 
 def _check_pygsp_graph(G):
     if isinstance(G, graphtools.base.BaseGraph):
@@ -22,7 +22,7 @@ def _check_pygsp_graph(G):
 
 def get_meld_cmap():
     """Returns cmap used in publication for displaying EES.
-       Inspired by cmocean `balance` cmap"""
+    Inspired by cmocean `balance` cmap"""
     base_colors = [
         [0.22107637, 0.53245276, 0.72819301, 1.0],
         [0.7, 0.7, 0.7, 1],
@@ -33,14 +33,14 @@ def get_meld_cmap():
 
 
 def normalize_densities(sample_densities):
-    '''
+    """
     Takes a 2-d array of sample densities from the same replicate and
     normalizes the row-sum to 1.
-    '''
+    """
     if isinstance(sample_densities, pd.DataFrame):
         index, columns = sample_densities.index, sample_densities.columns
 
-    norm_densities = sklearn.preprocessing.normalize(sample_densities, norm='l1')
+    norm_densities = sklearn.preprocessing.normalize(sample_densities, norm="l1")
 
     if isinstance(sample_densities, pd.DataFrame):
         norm_densities = pd.DataFrame(norm_densities, index=index, columns=columns)

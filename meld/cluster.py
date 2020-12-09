@@ -6,12 +6,7 @@ from scipy import sparse
 from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
 from sklearn import preprocessing, decomposition
-import warnings
-
 import scprep
-
-import time
-
 from . import utils
 
 
@@ -121,12 +116,16 @@ class VertexFrequencyCluster(BaseEstimator):
         TypeError
             Description
         """
-        tic = time.time()
+        # tic = time.time()
         # print('    Computing spectrogram for window')
         if len(sample_indicator.shape) == 1:
             sample_indicator = np.array(sample_indicator)
         else:
-            raise ValueError('sample_indicator must be 1-dimensional. Got shape: {}'.format(sample_indicator.shape))
+            raise ValueError(
+                "sample_indicator must be 1-dimensional. Got shape: {}".format(
+                    sample_indicator.shape
+                )
+            )
         if sparse.issparse(window):
             # the next computation becomes dense - better to make dense now
             C = window.multiply(sample_indicator).toarray()
@@ -137,23 +136,17 @@ class VertexFrequencyCluster(BaseEstimator):
         return C.T
 
     def _compute_multiresolution_spectrogram(self, sample_indicator):
-        """ Compute multiresolution spectrogram by repeatedly calling
-            _compute_spectrogram """
+        """Compute multiresolution spectrogram by repeatedly calling
+        _compute_spectrogram"""
 
-        # spectrogram = np.zeros((self.windows[0].shape[1],
-        #                        self.eigenvectors.shape[1]))
-
-        # for window in self.windows:
-        #    curr_spectrogram = self._compute_spectrogram(
-        #        sample_indicator, window)
-        #    curr_spectrogram = self._activate(curr_spectrogram)
-        #    spectrogram += curr_spectrogram
-        tic = time.time()
+        # tic = time.time()
         # print('  Computing multiresolution spectrogram')
         spectrogram = np.zeros((self.windows[0].shape[1], self.eigenvectors.shape[1]))
 
         for window in self.windows:
-            curr_spectrogram = self._compute_spectrogram(sample_indicator=sample_indicator, window=window)
+            curr_spectrogram = self._compute_spectrogram(
+                sample_indicator=sample_indicator, window=window
+            )
             curr_spectrogram = self._activate(curr_spectrogram)
             spectrogram += curr_spectrogram
 
@@ -201,7 +194,7 @@ class VertexFrequencyCluster(BaseEstimator):
 
     def _combine_spectrogram_likelihood(self, spectrogram, likelihood):
         """Normalizes and concatenates the likelihood to the
-           spectrogram for clustering"""
+        spectrogram for clustering"""
 
         spectrogram_n = spectrogram / np.linalg.norm(spectrogram)
 
@@ -223,7 +216,7 @@ class VertexFrequencyCluster(BaseEstimator):
             self._basewindow = sparse.csr_matrix(self._basewindow)
 
         self.windows = []
-        tic = time.time()
+        # tic = time.time()
         # print('Building windows')
         # Check if windows were generated using powers of 2
         if np.all(np.diff(np.log2(self.window_sizes)) == 1):
@@ -235,7 +228,7 @@ class VertexFrequencyCluster(BaseEstimator):
                 )
         # print(' finished in {:.2f} seconds'.format(time.time() - tic))
 
-        tic = time.time()
+        # tic = time.time()
         # print('Computing Fourier basis')
         # Compute Fourier basis. This may take some time.
         self.graph.compute_fourier_basis()
@@ -253,7 +246,9 @@ class VertexFrequencyCluster(BaseEstimator):
         if not self.isfit:
             raise ValueError("Estimator must be `fit` before running `transform`.")
 
-        if not isinstance(self.sample_indicator, (list, tuple, np.ndarray, pd.Series, pd.DataFrame)):
+        if not isinstance(
+            self.sample_indicator, (list, tuple, np.ndarray, pd.Series, pd.DataFrame)
+        ):
             raise TypeError("`sample_indicator` must be array-like.")
 
         if likelihood is not None and not isinstance(
@@ -263,17 +258,23 @@ class VertexFrequencyCluster(BaseEstimator):
 
         # Checking shape of sample_indicator
         self.sample_indicator = np.array(self.sample_indicator)
-        if not self.N in self.sample_indicator.shape:
-            raise ValueError("At least one axis of `sample_indicator` must be" " of length `N`.")
+        if self.N not in self.sample_indicator.shape:
+            raise ValueError(
+                "At least one axis of `sample_indicator` must be" " of length `N`."
+            )
 
         # Checking shape of likelihood
         if likelihood is not None:
             if self.N not in self.likelihood.shape:
-                raise ValueError("At least one axis of `likelihood` must be" " of length `N`.")
+                raise ValueError(
+                    "At least one axis of `likelihood` must be" " of length `N`."
+                )
             if likelihood.shape != sample_indicator.shape:
                 raise ValueError(
                     "`sample_indicator` and `likelihood` must have the same shape. "
-                    "Got sample_indicator: {} and likelihood: {}".format(str(sample_indicator.shape), str(likelihood.shape))
+                    "Got sample_indicator: {} and likelihood: {}".format(
+                        str(sample_indicator.shape), str(likelihood.shape)
+                    )
                 )
             self.likelihood = np.array(self.likelihood)
 
@@ -283,13 +284,19 @@ class VertexFrequencyCluster(BaseEstimator):
 
         # If only one sample_indicator, no need to collect
         if len(self.sample_indicator.shape) == 1:
-            self.spectrogram = self._compute_multiresolution_spectrogram(self.sample_indicator)
+            self.spectrogram = self._compute_multiresolution_spectrogram(
+                self.sample_indicator
+            )
         else:
             # Create a list of spectrograms and concatenate them
             spectrograms = []
             for i in range(self.sample_indicator.shape[1]):
-                curr_sample_indicator = scprep.select.select_cols(self.sample_indicator, idx=i)
-                spectrograms.append(self._compute_multiresolution_spectrogram(curr_sample_indicator))
+                curr_sample_indicator = scprep.select.select_cols(
+                    self.sample_indicator, idx=i
+                )
+                spectrograms.append(
+                    self._compute_multiresolution_spectrogram(curr_sample_indicator)
+                )
             self.spectrogram = np.hstack(spectrograms)
 
         # Appending the likelihood to the spectrogram
@@ -309,7 +316,9 @@ class VertexFrequencyCluster(BaseEstimator):
 
         if n_clusters is not None:
             self.n_clusters = n_clusters
-        self._clusterobj = KMeans(n_clusters=self.n_clusters, **kwargs, **self._sklearn_params)
+        self._clusterobj = KMeans(
+            n_clusters=self.n_clusters, **kwargs, **self._sklearn_params
+        )
 
         if not self.isfit:
             raise ValueError(
@@ -325,19 +334,23 @@ class VertexFrequencyCluster(BaseEstimator):
             data = self.spectrogram
         else:
             data = self.combined_spectrogram
-        tic = time.time()
+        # tic = time.time()
         # print('Running PCA on the spectrogram')
         data = decomposition.PCA(self.n_clusters).fit_transform(data)
         # print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
-        tic = time.time()
+        # tic = time.time()
         # print('Running clustering')
         self.labels_ = self._clusterobj.fit_predict(data)
 
         if self.likelihood is not None:
-            self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.likelihood)
+            self.labels_ = scprep.utils.sort_clusters_by_values(
+                self.labels_, self.likelihood
+            )
         else:
-            self.labels_ = scprep.utils.sort_clusters_by_values(self.labels_, self.sample_indicator)
+            self.labels_ = scprep.utils.sort_clusters_by_values(
+                self.labels_, self.sample_indicator
+            )
         # print(' finished in {:.2f} seconds'.format(time.time()-tic))
 
         return self.labels_
