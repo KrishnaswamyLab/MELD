@@ -1,5 +1,5 @@
-# MELD (Manifold Enhancement of Latent Dimensions)
-### Quantifying the effect of experimental perturbations in scRNA-seq data.
+# MELD
+### Quantifying the effect of experimental perturbations at single cell resolution
 
 
 [![Latest PyPi version](https://img.shields.io/pypi/v/MELD.svg)](https://pypi.org/project/MELD/)
