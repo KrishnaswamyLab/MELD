@@ -13,30 +13,27 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-
-- name: Install pypa/build
-  run: >-
-    python -m
-    pip install
-    build
-    --user
-- name: Build a binary wheel and a source tarball
-  run: >-
-    python -m
-    build
-    --sdist
-    --wheel
-    --outdir dist/
-    .
-
-- name: Publish distribution 📦 to Test PyPI
-    uses: pypa/gh-action-pypi-publish@master
-    with:
-      password: ${{ secrets.test_pypi_password }}
-      repository_url: https://test.pypi.org/legacy/
-      
-- name: Publish distribution 📦 to PyPI
-     if: startsWith(github.ref, 'refs/tags')
-     uses: pypa/gh-action-pypi-publish@master
-     with:
-       password: ${{ secrets.pypi_password }}
+    - name: Install pypa/build
+      run: >-
+        python -m
+        pip install
+        build
+        --user
+    - name: Build a binary wheel and a source tarball
+      run: >-
+        python -m
+        build
+        --sdist
+        --wheel
+        --outdir dist/
+        .
+    - name: Publish distribution 📦 to Test PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.test_pypi_password }}
+          repository_url: https://test.pypi.org/legacy/  
+    - name: Publish distribution 📦 to PyPI
+         if: startsWith(github.ref, 'refs/tags')
+         uses: pypa/gh-action-pypi-publish@master
+         with:
+           password: ${{ secrets.pypi_password }}
