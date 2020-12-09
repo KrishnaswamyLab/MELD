@@ -3,7 +3,7 @@
 
 
 [![Latest PyPi version](https://img.shields.io/pypi/v/MELD.svg)](https://pypi.org/project/MELD/)
-[![GitHub Actions](https://github.com/KrishnaswamyLab/MELD/workflows/Unit Tests/badge.svg)
+![GitHub Actions](https://github.com/KrishnaswamyLab/MELD/workflows/Unit Tests/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/KrishnaswamyLab/MELD/badge.svg?branch=master)](https://coveralls.io/github/KrishnaswamyLab/MELD?branch=master)
 [![Read the Docs](https://img.shields.io/readthedocs/meld-docs.svg)](https://meld-docs.readthedocs.io/)
 [![bioRxiv Preprint](https://zenodo.org/badge/DOI/10.1101/532846.svg)](https://doi.org/10.1101/532846)
