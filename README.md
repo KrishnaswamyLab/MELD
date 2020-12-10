@@ -1,5 +1,5 @@
 # MELD
-### Quantifying the effect of experimental perturbations at single cell resolution
+### Quantifying the effect of experimental perturbations at single-cell resolution
 
 
 [![Latest PyPi version](https://img.shields.io/pypi/v/MELD.svg)](https://pypi.org/project/MELD/)
