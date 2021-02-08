@@ -27,7 +27,7 @@ You can also watch a seminar explaining MELD given by [@dburkhardt](https://gith
 
 
 ```
-pip install --user meld
+pip install meld
 ```
 
 ### Requirements
