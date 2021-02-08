@@ -6,7 +6,7 @@
 ![GitHub Actions](https://github.com/KrishnaswamyLab/MELD/workflows/Unit%20Tests/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/KrishnaswamyLab/MELD/badge.svg?branch=master)](https://coveralls.io/github/KrishnaswamyLab/MELD?branch=master)
 [![Read the Docs](https://img.shields.io/readthedocs/meld-docs.svg)](https://meld-docs.readthedocs.io/)
-[![bioRxiv Preprint](https://zenodo.org/badge/DOI/10.1101/532846.svg)](https://doi.org/10.1101/532846)
+[![Article](https://zenodo.org/badge/DOI/10.1038/s41587-020-00803-5.svg)](https://doi.org/10.1038/s41587-020-00803-5)
 [![Twitter](https://img.shields.io/twitter/follow/KrishnaswamyLab.svg?style=social&label=Follow)](https://twitter.com/KrishnaswamyLab)
 [![GitHub stars](https://img.shields.io/github/stars/KrishnaswamyLab/MELD.svg?style=social&label=Stars)](https://github.com/KrishnaswamyLab/MELD/)
 
@@ -17,7 +17,7 @@
 
 MELD is a Python package for quantifying the effects of experimental perturbations. For an in depth explanation of the algorithm, read our manuscript on BioRxiv.
 
-[**Quantifying the effect of experimental perturbations at single-cell resolution**. Daniel B Burkhardt\*, Jay S Stanley\*, Alexander Tong, Ana Luisa Perdigoto, Scott A Gigante, Kevan C Herold, Guy Wolf, Antonio J Giraldez, David van Dijk, Smita Krishnaswamy. BioRxiv. doi:10.1101/532846.](<https://www.biorxiv.org/content/10.1101/532846v4>)
+[**Quantifying the effect of experimental perturbations at single-cell resolution**. Daniel B Burkhardt\*, Jay S Stanley\*, Alexander Tong, Ana Luisa Perdigoto, Scott A Gigante, Kevan C Herold, Guy Wolf, Antonio J Giraldez, David van Dijk, Smita Krishnaswamy. Nature Biotechnology. 2021.](https://www.nature.com/articles/s41587-020-00803-5)
 
 The goal of MELD is to identify populations of cells that are most affected by an experimental perturbation. Rather than clustering the data first and calculating differential abundance of samples within clusters, MELD provides a density estimate for each scRNA-seq sample for every cell in each dataset. Comparing the ratio between the density of each sample provides a quantitative estimate the effect of a perturbation at the single-cell level. We can then identify the cells most or least affected by the perturbation.
 
