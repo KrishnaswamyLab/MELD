@@ -56,9 +56,7 @@ setup(
     ),
     keywords=["big-data", "manifold-learning", "computational-biology"],
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Environment :: Console",
-        "Framework :: Jupyter",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "Natural Language :: English",
@@ -66,8 +64,9 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
 )
