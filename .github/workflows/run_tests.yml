@@ -93,7 +93,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        coveralls
+        coveralls --service=github
 
     - name: Upload check results on fail
       if: failure()
