@@ -91,7 +91,7 @@ class Benchmarker(object):
             data_phate = scipy.stats.zscore(data_phate, axis=0)
         self.data_phate = data_phate
 
-    def fit_graph(self, data, **kwargs):
+    def fit_graph(self, data, n_pca=100, **kwargs):
         """Fits a graphtools.Graph to input data
 
         Parameters
@@ -108,7 +108,7 @@ class Benchmarker(object):
 
         """
         self.graph = gt.Graph(
-            data, n_pca=100, use_pygsp=True, random_state=self.seed, **kwargs
+            data, n_pca=n_pca, use_pygsp=True, random_state=self.seed, **kwargs
         )
         return self.graph
 
