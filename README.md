@@ -10,12 +10,15 @@
 [![Twitter](https://img.shields.io/twitter/follow/KrishnaswamyLab.svg?style=social&label=Follow)](https://twitter.com/KrishnaswamyLab)
 [![GitHub stars](https://img.shields.io/github/stars/KrishnaswamyLab/MELD.svg?style=social&label=Stars)](https://github.com/KrishnaswamyLab/MELD/)
 
-### Quick Start
+### Tutorials
+For a quick-start tutorial of MELD in Google CoLab, check out this notebook from our [Machine Learning Workshop](https://krishnaswamylab.org/workshop):
+* [**MELD Quick Start - Zebrafish data**](https://colab.research.google.com/github/KrishnaswamyLab/SingleCellWorkshop/blob/master/exercises/DifferentialAbundance/Answers_Wagner2018_Chordin_Cas9_Mutagenesis.ipynb)
+
 If you're looking for an in-depth tutorial of MELD and VFC, start here:
 * [**Guided tutorial in Python - Zebrafish data**](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/Wagner2018_Chordin_Cas9_Mutagenesis.ipynb).
 
-If you'd like to use MELD without VFC, start here:
-* [**Tutorial using MELD without VFC - T cell data**](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/Wagner2018_Chordin_Cas9_Mutagenesis.ipynb).
+If you'd like to see how to use MELD without VFC, start here:
+* [**Tutorial using MELD without VFC - T cell data**](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/MELD_thresholding.Tcell.ipynb).
 
 ### Introduction
 
