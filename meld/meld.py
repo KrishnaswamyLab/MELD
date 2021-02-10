@@ -220,7 +220,7 @@ class MELD(GraphEstimator):
             )
 
         # self._label_cls = type(sample_labels)
-        if isinstance(sample_labels, pd.DataFrame):
+        if hasattr(sample_labels, "index"):
             self._labels_index = sample_labels.index
         else:
             self._labels_index = None
