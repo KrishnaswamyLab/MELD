@@ -28,7 +28,7 @@ MELD is a Python package for quantifying the effects of experimental perturbatio
 
 The goal of MELD is to identify populations of cells that are most affected by an experimental perturbation. Rather than clustering the data first and calculating differential abundance of samples within clusters, MELD provides a density estimate for each scRNA-seq sample for every cell in each dataset. Comparing the ratio between the density of each sample provides a quantitative estimate the effect of a perturbation at the single-cell level. We can then identify the cells most or least affected by the perturbation.
 
-You can also watch a seminar explaining MELD given by [@dburkhardt](https://github.com/dburkhardt): [![Video](https://img.shields.io/static/v1?label=Zoom&message=Watch%20recording&color=blue&logo=airplay%20video)](https://yale.zoom.us/rec/play/GevmaqSn9xM-j3k3gp1xWnVlKIJGtpUsrv9JZQb5SaqcPfT_pYxwExsXs_jIvIbQsId0eUHw9HkxnvWG.T6ETwk9f0it9LA78?continueMode=true)
+You can also watch a seminar explaining MELD given by [@dburkhardt](https://github.com/dburkhardt): [![Video](https://img.shields.io/static/v1?label=YouTube&message=Watch%20recording&color=red&logo=youtube)](https://youtu.be/PlVk1Pe0SkQ)
 
 ### Installation
 
