@@ -10,7 +10,7 @@ install_requires = [
     "pandas>=0.25",
     "scprep>=1.0",
     "pygsp",
-    "sklearn",
+    "scikit-learn",
 ]
 
 test_requires = [
