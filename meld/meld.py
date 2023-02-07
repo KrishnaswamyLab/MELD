@@ -105,7 +105,6 @@ class MELD(GraphEstimator):
         n_landmark=None,
         **kwargs
     ):
-
         self.beta = beta
         self.offset = offset
         self.order = order
