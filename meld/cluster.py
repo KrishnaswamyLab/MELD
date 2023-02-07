@@ -76,7 +76,8 @@ class VertexFrequencyCluster(BaseEstimator):
         self.isfit = False
         self.likelihood = None
         self.sample_indicator = None
-        self._sklearn_params = kwargs
+        self._sklearn_params = {"n_init": 10}
+        self._sklearn_params.update(kwargs)
 
     def _activate(self, x, alpha=1):
         """Activate spectrograms for clustering
