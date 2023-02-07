@@ -163,14 +163,14 @@ class VertexFrequencyCluster(BaseEstimator):
         This function is used when the power of windows is NOT diadic
         """
         if sparse.issparse(window):
-            window = window ** t
+            window = window**t
         else:
             window = np.linalg.matrix_power(window, t)
         return preprocessing.normalize(window, "l2", axis=0).T
 
     def _power_matrix(self, a, n):
         if sparse.issparse(a):
-            a = a ** n
+            a = a**n
         else:
             a = np.linalg.matrix_power(a, n)
         return a
