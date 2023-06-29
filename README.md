@@ -15,10 +15,10 @@ For a quick-start tutorial of MELD in Google CoLab, check out this notebook from
 * [**MELD Quick Start - Zebrafish data**](https://colab.research.google.com/github/KrishnaswamyLab/SingleCellWorkshop/blob/master/exercises/DifferentialAbundance/Answers_Wagner2018_Chordin_Cas9_Mutagenesis.ipynb)
 
 If you're looking for an in-depth tutorial of MELD and VFC, start here:
-* [**Guided tutorial in Python - Zebrafish data**](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/Wagner2018_Chordin_Cas9_Mutagenesis.ipynb).
+* [**Guided tutorial in Python - Zebrafish data**](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/main/notebooks/Wagner2018_Chordin_Cas9_Mutagenesis.ipynb).
 
 If you'd like to see how to use MELD without VFC, start here:
-* [**Tutorial using MELD without VFC - T cell data**](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/master/notebooks/MELD_thresholding.Tcell.ipynb).
+* [**Tutorial using MELD without VFC - T cell data**](https://nbviewer.jupyter.org/github/KrishnaswamyLab/MELD/blob/main/notebooks/MELD_thresholding.Tcell.ipynb).
 
 ### Introduction
 
